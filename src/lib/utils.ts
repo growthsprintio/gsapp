@@ -26,7 +26,7 @@ export function generateAdName(opts: {
   return `${brand}_${format}_${size}_${angle}_${idx}`;
 }
 
-import type { NamingConvention, RoadmapItem } from './types';
+import type { NamingConvention, NamingVariable, RoadmapItem } from './types';
 
 export const DEFAULT_NAMING_CONVENTION: NamingConvention = {
   formula: '{b}{sep}{f}{sep}{s}{sep}{a}{sep}{#}',

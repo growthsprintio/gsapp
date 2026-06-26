@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/lib/store';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Building2, Briefcase, User, Pencil, Trash2, Check, X, Map, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -220,7 +220,7 @@ function AccountCard({ account }: { account: Account }) {
   );
 }
 
-export default function AccountsPage() {
+function AccountsContent() {
   const accounts = useAppStore((s) => s.accounts);
   const addAccount = useAppStore((s) => s.addAccount);
   const router = useRouter();
@@ -273,5 +273,13 @@ export default function AccountsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AccountsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AccountsContent />
+    </Suspense>
   );
 }
