@@ -222,7 +222,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                             onChange={(e) => setCustom(v.key, e.target.value)}
                             className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
                             <option value="">Select {v.label.toLowerCase()}...</option>
-                            {v.values?.map((opt) => (
+                            {v.values?.map((opt: { match: string; output: string }) => (
                               <option key={opt.match} value={opt.match}>
                                 {opt.match} → {opt.output}
                               </option>
