@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import { applyNamingConvention, getCustomVariables } from '@/lib/utils';
-import { FORMAT_OPTIONS, SIZE_OPTIONS, type RoadmapItem, type AdFormat } from '@/lib/types';
-import { X, Wand2, ExternalLink, ChevronDown, Search } from 'lucide-react';
+import {
+  FORMAT_OPTIONS, SIZE_OPTIONS, type RoadmapItem, type AdFormat,
+  META_OBJECTIVES, META_OPTIMIZATION_GOALS, META_CTAS, META_PLACEMENTS, META_GENDERS,
+} from '@/lib/types';
+import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef } from 'react';
 
@@ -120,6 +123,11 @@ const EMPTY = {
   description: '', primaryText: '', headline: '', adDescription: '',
   inspirationLink: '', creativeLink: '', frameioLink: '', landingPage: '',
   product: '', dueDate: '', adLength: '',
+  // Meta launch config
+  metaAdAccountId: '', metaPageId: '', metaInstagramId: '', metaObjective: '',
+  metaCampaignName: '', metaDailyBudget: '', metaOptimizationGoal: '', metaCTA: '',
+  metaStartDate: '', metaEndDate: '', metaLocations: '', metaAgeMin: '', metaAgeMax: '',
+  metaGender: '', metaInterests: '', metaPlacements: '',
 };
 
 export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
@@ -151,6 +159,22 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
         product: editItem.product || '',
         dueDate: editItem.dueDate || '',
         adLength: editItem.adLength || '',
+        metaAdAccountId: editItem.metaAdAccountId || '',
+        metaPageId: editItem.metaPageId || '',
+        metaInstagramId: editItem.metaInstagramId || '',
+        metaObjective: editItem.metaObjective || '',
+        metaCampaignName: editItem.metaCampaignName || '',
+        metaDailyBudget: editItem.metaDailyBudget || '',
+        metaOptimizationGoal: editItem.metaOptimizationGoal || '',
+        metaCTA: editItem.metaCTA || '',
+        metaStartDate: editItem.metaStartDate || '',
+        metaEndDate: editItem.metaEndDate || '',
+        metaLocations: editItem.metaLocations || '',
+        metaAgeMin: editItem.metaAgeMin || '',
+        metaAgeMax: editItem.metaAgeMax || '',
+        metaGender: editItem.metaGender || '',
+        metaInterests: editItem.metaInterests || '',
+        metaPlacements: editItem.metaPlacements || '',
       });
     } else {
       setForm({ ...EMPTY });
@@ -172,6 +196,28 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     });
     set('adName', name);
   };
+
+  // Meta launch placements are stored as a comma-joined string
+  const selectedPlacements = form.metaPlacements ? form.metaPlacements.split(',').filter(Boolean) : [];
+  const togglePlacement = (value: string) => {
+    const next = selectedPlacements.includes(value)
+      ? selectedPlacements.filter((p) => p !== value)
+      : [...selectedPlacements, value];
+    set('metaPlacements', next.join(','));
+  };
+
+  // Launch readiness — what Meta needs before an ad can be created
+  const readiness = [
+    { label: 'Approved status', ok: editItem?.status === 'ready_to_launch' },
+    { label: 'Ad account + Page', ok: !!form.metaAdAccountId && !!form.metaPageId },
+    { label: 'Objective', ok: !!form.metaObjective },
+    { label: 'Daily budget', ok: !!form.metaDailyBudget },
+    { label: 'Primary text + headline', ok: !!form.primaryText && !!form.headline },
+    { label: 'Landing page + CTA', ok: !!form.landingPage && !!form.metaCTA },
+    { label: 'Creative asset', ok: !!form.creativeLink },
+    { label: 'At least one placement', ok: selectedPlacements.length > 0 },
+  ];
+  const launchReady = readiness.every((r) => r.ok);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -384,38 +430,200 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
             {tab === 'launch' && (
               <>
-                <div className="bg-secondary/60 border border-border rounded-lg p-4 mb-4">
+                <div className="bg-secondary/60 border border-border rounded-lg p-4">
                   <p className="text-xs font-medium mb-1">Meta Launch Setup</p>
-                  <p className="text-xs text-muted-foreground">Configure launch settings before pushing to Meta Ads Manager.</p>
+                  <p className="text-xs text-muted-foreground">
+                    These fields map directly to Meta&apos;s Campaign → Ad Set → Ad → Creative objects. Meta isn&apos;t connected yet — for now this is saved with the brief.
+                  </p>
                 </div>
+
+                {/* ── Destination ── */}
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Destination</p>
                 <div>
-                  <label className="text-xs font-medium block mb-1.5">Landing Page URL</label>
-                  <input value={form.landingPage} onChange={(e) => set('landingPage', e.target.value)}
-                    placeholder="https://yourbrand.com/product"
+                  <label className="text-xs font-medium block mb-1.5">Ad Account</label>
+                  <input value={form.metaAdAccountId} onChange={(e) => set('metaAdAccountId', e.target.value)}
+                    placeholder="act_1234567890"
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Facebook Page</label>
+                    <input value={form.metaPageId} onChange={(e) => set('metaPageId', e.target.value)}
+                      placeholder="Page ID or name"
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Instagram (optional)</label>
+                    <input value={form.metaInstagramId} onChange={(e) => set('metaInstagramId', e.target.value)}
+                      placeholder="@handle or ID"
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                {/* ── Campaign ── */}
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Campaign</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Objective</label>
+                    <select value={form.metaObjective} onChange={(e) => set('metaObjective', e.target.value)}
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                      <option value="">Select objective</option>
+                      {META_OBJECTIVES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Campaign Name</label>
+                    <input value={form.metaCampaignName} onChange={(e) => set('metaCampaignName', e.target.value)}
+                      placeholder="New or existing"
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                {/* ── Budget & Schedule ── */}
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Budget &amp; Schedule</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Daily Budget (USD)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                      <input type="number" min="1" value={form.metaDailyBudget} onChange={(e) => set('metaDailyBudget', e.target.value)}
+                        placeholder="50"
+                        className="w-full border border-border rounded-lg pl-7 pr-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Optimization Goal</label>
+                    <select value={form.metaOptimizationGoal} onChange={(e) => set('metaOptimizationGoal', e.target.value)}
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                      <option value="">Select goal</option>
+                      {META_OPTIMIZATION_GOALS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Start Date</label>
+                    <input type="date" value={form.metaStartDate} onChange={(e) => set('metaStartDate', e.target.value)}
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">End Date (optional)</label>
+                    <input type="date" value={form.metaEndDate} onChange={(e) => set('metaEndDate', e.target.value)}
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                {/* ── Targeting ── */}
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Targeting</p>
+                <div>
+                  <label className="text-xs font-medium block mb-1.5">Locations</label>
+                  <input value={form.metaLocations} onChange={(e) => set('metaLocations', e.target.value)}
+                    placeholder="e.g. United States, Canada"
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Age Min</label>
+                    <input type="number" min="13" max="65" value={form.metaAgeMin} onChange={(e) => set('metaAgeMin', e.target.value)}
+                      placeholder="18"
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Age Max</label>
+                    <input type="number" min="13" max="65" value={form.metaAgeMax} onChange={(e) => set('metaAgeMax', e.target.value)}
+                      placeholder="65"
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Gender</label>
+                    <select value={form.metaGender} onChange={(e) => set('metaGender', e.target.value)}
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                      <option value="">All</option>
+                      {META_GENDERS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1.5">Interests / Detailed Targeting</label>
+                  <input value={form.metaInterests} onChange={(e) => set('metaInterests', e.target.value)}
+                    placeholder="e.g. Skincare, Beauty, Wellness"
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+
+                {/* ── Placements ── */}
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Placements</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {META_PLACEMENTS.map((p) => {
+                    const active = selectedPlacements.includes(p.value);
+                    return (
+                      <button type="button" key={p.value} onClick={() => togglePlacement(p.value)}
+                        className={cn('text-xs px-2.5 py-1 rounded-full border transition-colors',
+                          active ? 'border-primary bg-primary/5 text-primary font-medium' : 'border-border text-muted-foreground hover:border-primary/30')}>
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* ── Ad / Creative ── */}
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Ad</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Call to Action</label>
+                    <select value={form.metaCTA} onChange={(e) => set('metaCTA', e.target.value)}
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                      <option value="">Select CTA</option>
+                      {META_CTAS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Landing Page URL</label>
+                    <input value={form.landingPage} onChange={(e) => set('landingPage', e.target.value)}
+                      placeholder="https://brand.com/product"
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                {/* ── Readiness checklist ── */}
                 <div className="bg-muted/50 border border-border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-medium">Launch to Meta</p>
+                    <p className="text-xs font-medium">Launch Readiness</p>
                     <span className="text-xs text-muted-foreground border border-border rounded px-2 py-0.5">
-                      {editItem?.metaAdId ? `Active: ${editItem.metaAdId}` : 'Not yet launched'}
+                      {editItem?.metaAdId ? `Live: ${editItem.metaAdId}` : `${readiness.filter((r) => r.ok).length}/${readiness.length} ready`}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Creative must be in <span className="font-medium text-primary">Ready to Launch</span> status before pushing to Meta.
-                  </p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-4">
+                    {readiness.map((r) => (
+                      <div key={r.label} className="flex items-center gap-1.5">
+                        {r.ok
+                          ? <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                          : <AlertCircle className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
+                        <span className={cn('text-[11px]', r.ok ? 'text-foreground' : 'text-muted-foreground')}>{r.label}</span>
+                      </div>
+                    ))}
+                  </div>
                   <button type="button"
-                    disabled={editItem?.status !== 'ready_to_launch'}
+                    disabled={!launchReady}
+                    title={launchReady ? 'Push to Meta (simulated)' : 'Complete the checklist to enable'}
                     className="w-full flex items-center justify-center gap-2 bg-primary text-white text-sm font-medium py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                     <ExternalLink className="w-4 h-4" />
                     {editItem?.metaAdId ? 'View in Meta Ads Manager' : 'Push to Meta'}
                   </button>
-                  {editItem?.status !== 'ready_to_launch' && (
-                    <p className="text-[11px] text-muted-foreground mt-2 text-center">
-                      Change status to "Ready to Launch" to enable push.
-                    </p>
-                  )}
+                  <p className="text-[11px] text-muted-foreground mt-2 text-center">
+                    Push is simulated until Meta is connected. Save the brief to keep this config.
+                  </p>
                 </div>
               </>
             )}

@@ -42,6 +42,23 @@ export interface RoadmapItem {
   assignee?: string;
   launchedAt?: string;
   metaAdId?: string;
+  // ── Meta launch config (Phase 1: captured now, pushed to Marketing API later) ──
+  metaAdAccountId?: string;
+  metaPageId?: string;
+  metaInstagramId?: string;
+  metaObjective?: string;
+  metaCampaignName?: string;
+  metaDailyBudget?: string;
+  metaOptimizationGoal?: string;
+  metaCTA?: string;
+  metaStartDate?: string;
+  metaEndDate?: string;
+  metaLocations?: string;
+  metaAgeMin?: string;
+  metaAgeMax?: string;
+  metaGender?: string;
+  metaInterests?: string;
+  metaPlacements?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -102,3 +119,51 @@ export interface NamingConvention {
   separator: string;
   variables: NamingVariable[];
 }
+
+// ── Meta Marketing API option lists (values are the real API enum values) ──
+export const META_OBJECTIVES: { value: string; label: string }[] = [
+  { value: 'OUTCOME_SALES', label: 'Sales' },
+  { value: 'OUTCOME_TRAFFIC', label: 'Traffic' },
+  { value: 'OUTCOME_LEADS', label: 'Leads' },
+  { value: 'OUTCOME_AWARENESS', label: 'Awareness' },
+  { value: 'OUTCOME_ENGAGEMENT', label: 'Engagement' },
+  { value: 'OUTCOME_APP_PROMOTION', label: 'App Promotion' },
+];
+
+export const META_OPTIMIZATION_GOALS: { value: string; label: string }[] = [
+  { value: 'OFFSITE_CONVERSIONS', label: 'Conversions' },
+  { value: 'LINK_CLICKS', label: 'Link Clicks' },
+  { value: 'LANDING_PAGE_VIEWS', label: 'Landing Page Views' },
+  { value: 'THRUPLAY', label: 'Video ThruPlay' },
+  { value: 'REACH', label: 'Reach' },
+  { value: 'IMPRESSIONS', label: 'Impressions' },
+];
+
+export const META_CTAS: { value: string; label: string }[] = [
+  { value: 'SHOP_NOW', label: 'Shop Now' },
+  { value: 'LEARN_MORE', label: 'Learn More' },
+  { value: 'SIGN_UP', label: 'Sign Up' },
+  { value: 'SUBSCRIBE', label: 'Subscribe' },
+  { value: 'GET_OFFER', label: 'Get Offer' },
+  { value: 'ORDER_NOW', label: 'Order Now' },
+  { value: 'BOOK_TRAVEL', label: 'Book Now' },
+  { value: 'DOWNLOAD', label: 'Download' },
+  { value: 'CONTACT_US', label: 'Contact Us' },
+];
+
+export const META_PLACEMENTS: { value: string; label: string }[] = [
+  { value: 'facebook_feed', label: 'Facebook Feed' },
+  { value: 'instagram_feed', label: 'Instagram Feed' },
+  { value: 'instagram_reels', label: 'Instagram Reels' },
+  { value: 'instagram_stories', label: 'Instagram Stories' },
+  { value: 'facebook_reels', label: 'Facebook Reels' },
+  { value: 'facebook_marketplace', label: 'Marketplace' },
+  { value: 'audience_network', label: 'Audience Network' },
+  { value: 'messenger_inbox', label: 'Messenger' },
+];
+
+export const META_GENDERS: { value: string; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'men', label: 'Men' },
+  { value: 'women', label: 'Women' },
+];
