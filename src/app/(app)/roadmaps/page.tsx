@@ -26,20 +26,23 @@ function lastUpdated(roadmap: Roadmap) {
   return formatDistanceToNow(new Date(latest.updatedAt), { addSuffix: true });
 }
 
-function RoadmapCard({ roadmap, onNew }: { roadmap: Roadmap; onNew?: () => void }) {
+function RoadmapCard({ roadmap, isAgency }: { roadmap: Roadmap; isAgency?: boolean }) {
   const archiveRoadmap = useAppStore((s) => s.archiveRoadmap);
   const items = roadmap.items;
   const counts = Object.fromEntries(MINI_STAGES.map(({ key }) => [key, items.filter((i) => i.status === key).length]));
   const ago = lastUpdated(roadmap);
 
+  // Agency workspaces surface the client name; brand/personal just show the period/type.
+  const tag = isAgency && roadmap.client
+    ? `Client · ${roadmap.client}`
+    : roadmap.period || roadmap.type.charAt(0).toUpperCase() + roadmap.type.slice(1);
+
   return (
     <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4 hover:border-primary/20 transition-colors">
       {/* Tag pill */}
       <div className="flex justify-center">
-        <span className="bg-orange-50 text-primary text-xs font-medium px-4 py-1 rounded-full border border-orange-100">
-          {roadmap.type === 'client' && roadmap.client
-            ? `Client | ${roadmap.client}`
-            : `${roadmap.type === 'monthly' ? 'DTC' : roadmap.type === 'quarterly' ? 'DTC' : 'Campaign'} | ${roadmap.period || roadmap.type}`}
+        <span className="bg-orange-50 text-primary text-xs font-medium px-4 py-1 rounded-full border border-orange-100 capitalize">
+          {tag}
         </span>
       </div>
 
@@ -62,15 +65,16 @@ function RoadmapCard({ roadmap, onNew }: { roadmap: Roadmap; onNew?: () => void 
         </button>
       </div>
 
-      {/* Pipeline health mini squares */}
+      {/* Creative by stage */}
       <div>
-        <p className="text-xs font-medium text-muted-foreground mb-2">Pipeline health</p>
+        <p className="text-xs font-medium text-muted-foreground mb-2">Creative by stage</p>
         <div className="flex items-end gap-1.5">
           {MINI_STAGES.map(({ key, label }) => {
             const count = counts[key] ?? 0;
             const isLive = key === 'launched';
             return (
               <div key={key}
+                title={`${count} creative in ${label}`}
                 className={cn(
                   'flex-1 rounded-lg flex flex-col items-center justify-center py-2 gap-0.5 border',
                   isLive && count > 0
@@ -80,7 +84,7 @@ function RoadmapCard({ roadmap, onNew }: { roadmap: Roadmap; onNew?: () => void 
                     : 'bg-secondary border-border text-muted-foreground'
                 )}>
                 <span className="text-sm font-bold">{count}</span>
-                <span className="text-[9px] leading-tight text-center opacity-60">{label}</span>
+                <span className="text-[9px] leading-tight text-center opacity-70">{label}</span>
               </div>
             );
           })}
@@ -126,9 +130,16 @@ export default function RoadmapsPage() {
     !search || r.name.toLowerCase().includes(search.toLowerCase()) || r.description?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const isAgency = currentAccount?.type === 'agency';
+  const clientCount = new Set(active.map((r) => r.client).filter(Boolean)).size;
+
   const STATS = [
-    { label: 'Active Roadmaps', value: active.length, sub: `Across ${new Set(active.map((r) => r.client || r.type)).size} brands` },
-    { label: 'Creatives In-Flight', value: inFlight, sub: 'Idea → In Review' },
+    {
+      label: 'Active Roadmaps',
+      value: active.length,
+      sub: isAgency ? `Across ${clientCount} client${clientCount !== 1 ? 's' : ''}` : 'In this workspace',
+    },
+    { label: 'Creative In Progress', value: inFlight, sub: 'Idea → Review' },
     { label: 'Approved This Week', value: approved, sub: 'Ready to launch' },
     { label: 'Launched', value: launched, sub: 'Last 7 days' },
   ];
@@ -144,8 +155,9 @@ export default function RoadmapsPage() {
             </div>
             <h1 className="text-4xl font-bold mb-3">{currentAccount?.name ?? 'Your Roadmaps'}</h1>
             <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
-              Every brand, client, and product line gets its own self-contained creative roadmap —
-              pipeline, briefs, approvals, and Meta launches in one electric workspace.
+              {isAgency
+                ? 'Every client and campaign gets its own self-contained creative roadmap — pipeline, briefs, approvals, and Meta launches in one workspace.'
+                : 'Every campaign and product line gets its own creative roadmap — from idea to briefed, reviewed, approved, and launched to Meta.'}
             </p>
           </div>
           <button onClick={() => setShowNew(true)}
@@ -185,7 +197,7 @@ export default function RoadmapsPage() {
             />
           </div>
           <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 bg-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors">
+            className="flex items-center gap-2 bg-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-colors">
             <Plus className="w-4 h-4" /> New Roadmap
           </button>
         </div>
@@ -203,7 +215,7 @@ export default function RoadmapsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-4">
-          {filtered.map((r) => <RoadmapCard key={r.id} roadmap={r} />)}
+          {filtered.map((r) => <RoadmapCard key={r.id} roadmap={r} isAgency={isAgency} />)}
         </div>
       )}
 

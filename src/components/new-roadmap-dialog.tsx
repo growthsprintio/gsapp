@@ -10,8 +10,7 @@ interface Props { open: boolean; onClose: () => void; }
 
 const TYPES: Array<{ value: Roadmap['type']; label: string; desc: string }> = [
   { value: 'monthly', label: 'Monthly', desc: 'Organized by month' },
-  { value: 'quarterly', label: 'Quarterly', desc: 'Quarterly campaign push' },
-  { value: 'campaign', label: 'Campaign', desc: 'Specific campaign or launch' },
+  { value: 'quarterly', label: 'Quarterly', desc: 'Quarterly push' },
   { value: 'product', label: 'Product', desc: 'Product-line focused' },
   { value: 'client', label: 'Client', desc: 'Agency client sprint' },
 ];
@@ -81,6 +80,7 @@ export function NewRoadmapDialog({ open, onClose }: Props) {
               placeholder="e.g. June 2025, Q3, Sprint 4"
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
             />
+            <p className="text-[11px] text-muted-foreground mt-1">Optional — shown as the tag on the roadmap card.</p>
           </div>
 
           <div>
