@@ -6,7 +6,7 @@ import { STATUS_CONFIG, type CreativeStatus, type RoadmapItem, type Roadmap } fr
 import { cn } from '@/lib/utils';
 import { Plus, ChevronDown, Pencil, Trash2, Zap, ExternalLink } from 'lucide-react';
 
-const STATUSES: CreativeStatus[] = ['idea', 'briefed', 'in_review', 'revisions_needed', 'ready_to_launch', 'launched'];
+const STATUSES: CreativeStatus[] = ['idea', 'briefed', 'in_review', 'ready_to_launch', 'launched'];
 
 function StatusDropdown({ item, roadmapId }: { item: RoadmapItem; roadmapId: string }) {
   const updateItemStatus = useAppStore((s) => s.updateItemStatus);

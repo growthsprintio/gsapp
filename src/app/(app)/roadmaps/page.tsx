@@ -2,7 +2,7 @@
 
 import { useAppStore } from '@/lib/store';
 import { useState } from 'react';
-import { Plus, Search, Pencil, Trash2, Flag, LayoutList } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { NewRoadmapDialog } from '@/components/new-roadmap-dialog';
@@ -12,9 +12,8 @@ import { formatDistanceToNow } from 'date-fns';
 // Mini pipeline health squares on the card
 const MINI_STAGES = [
   { key: 'idea', label: 'Idea' },
-  { key: 'briefed', label: 'Brief' },
-  { key: 'in_review', label: 'Prod' },
-  { key: 'revisions_needed', label: 'Review' },
+  { key: 'briefed', label: 'Briefed' },
+  { key: 'in_review', label: 'Review' },
   { key: 'ready_to_launch', label: 'Approved' },
   { key: 'launched', label: 'Live' },
 ] as const;
@@ -98,26 +97,14 @@ function RoadmapCard({ roadmap, onNew }: { roadmap: Roadmap; onNew?: () => void 
             </div>
           ))}
         </div>
-        <div className="text-right">
-          {ago && <p className="text-[11px] text-muted-foreground">Updated {ago}</p>}
-          <Link href={`/roadmaps/${roadmap.id}`}
-            className="text-xs font-medium text-primary hover:underline">
-            Open dashboard →
-          </Link>
-        </div>
+        {ago && <p className="text-[11px] text-muted-foreground">Updated {ago}</p>}
       </div>
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-2">
-        <Link href={`/roadmaps/${roadmap.id}?view=pipeline`}
-          className="flex-1 flex items-center justify-center gap-1.5 border border-border bg-secondary text-foreground text-xs font-semibold py-2 rounded-lg hover:bg-muted transition-colors">
-          <LayoutList className="w-3.5 h-3.5" /> Pipeline
-        </Link>
-        <Link href={`/launch`}
-          className="flex-1 flex items-center justify-center gap-1.5 border border-border bg-secondary text-foreground text-xs font-semibold py-2 rounded-lg hover:bg-muted transition-colors">
-          <Flag className="w-3.5 h-3.5" /> Campaigns
-        </Link>
-      </div>
+      {/* Single full-width action */}
+      <Link href={`/roadmaps/${roadmap.id}`}
+        className="flex items-center justify-center gap-1.5 bg-primary text-white text-xs font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-colors">
+        Open roadmap →
+      </Link>
     </div>
   );
 }
@@ -131,7 +118,7 @@ export default function RoadmapsPage() {
 
   const active = roadmaps.filter((r) => r.accountId === currentAccountId && r.status === 'active');
   const allItems = active.flatMap((r) => r.items);
-  const inFlight = allItems.filter((i) => ['idea', 'briefed', 'in_review', 'revisions_needed'].includes(i.status)).length;
+  const inFlight = allItems.filter((i) => ['idea', 'briefed', 'in_review'].includes(i.status)).length;
   const approved = allItems.filter((i) => i.status === 'ready_to_launch').length;
   const launched = allItems.filter((i) => i.status === 'launched').length;
 

@@ -235,16 +235,16 @@ function AccountsContent() {
     <div className="px-8 py-8 max-w-4xl">
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold">Accounts</h1>
+          <h1 className="text-2xl font-bold">Workspaces</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Each account has its own roadmaps, team, and settings. Switch between them from the sidebar.
+            Each workspace has its own roadmaps, team, and settings. Switch between them from the sidebar.
           </p>
         </div>
         <button
           onClick={() => setShowNew(true)}
           className="flex items-center gap-2 bg-primary text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-primary/90 transition-colors"
         >
-          <Plus className="w-4 h-4" /> New Account
+          <Plus className="w-4 h-4" /> New Workspace
         </button>
       </div>
 

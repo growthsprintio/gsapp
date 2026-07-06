@@ -15,7 +15,6 @@ const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/roadmaps', label: 'Roadmaps', icon: Map },
   { href: '/copy-bank', label: 'Copy Bank', icon: Type },
-  { href: '/launch', label: 'Meta Launch', icon: Zap },
   { href: '/team', label: 'Team', icon: Users },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
@@ -51,7 +50,7 @@ function AccountSwitcher() {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute left-3 right-3 top-full mt-1 z-50 bg-popover border border-border rounded-xl shadow-lg overflow-hidden">
             <div className="px-3 py-2 border-b border-border">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Accounts</p>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Workspaces</p>
             </div>
             <div className="py-1 max-h-56 overflow-y-auto">
               {accounts.map((acct) => {
@@ -87,7 +86,7 @@ function AccountSwitcher() {
                 <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
                   <Building2 className="w-3 h-3 text-muted-foreground" />
                 </div>
-                <p className="text-xs text-muted-foreground">Manage accounts</p>
+                <p className="text-xs text-muted-foreground">Manage workspaces</p>
               </Link>
               <Link
                 href="/accounts?new=1"
@@ -97,7 +96,7 @@ function AccountSwitcher() {
                 <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <Plus className="w-3 h-3 text-primary" />
                 </div>
-                <p className="text-xs font-medium text-primary">New account</p>
+                <p className="text-xs font-medium text-primary">New workspace</p>
               </Link>
             </div>
           </div>

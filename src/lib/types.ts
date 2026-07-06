@@ -2,7 +2,6 @@ export type CreativeStatus =
   | 'idea'
   | 'briefed'
   | 'in_review'
-  | 'revisions_needed'
   | 'ready_to_launch'
   | 'launched';
 
@@ -79,9 +78,8 @@ export interface TeamMember {
 
 export const STATUS_CONFIG: Record<CreativeStatus, { label: string; color: string; bg: string }> = {
   idea: { label: 'Idea', color: 'text-stone-600', bg: 'bg-stone-100' },
-  briefed: { label: 'Brief', color: 'text-stone-700', bg: 'bg-stone-100' },
-  in_review: { label: 'In Review', color: 'text-amber-700', bg: 'bg-amber-50' },
-  revisions_needed: { label: 'Revisions', color: 'text-red-700', bg: 'bg-red-50' },
+  briefed: { label: 'Briefed', color: 'text-stone-700', bg: 'bg-stone-200' },
+  in_review: { label: 'Review', color: 'text-amber-700', bg: 'bg-amber-50' },
   ready_to_launch: { label: 'Approved', color: 'text-emerald-700', bg: 'bg-emerald-50' },
   launched: { label: 'Launched', color: 'text-white', bg: 'bg-primary' },
 };

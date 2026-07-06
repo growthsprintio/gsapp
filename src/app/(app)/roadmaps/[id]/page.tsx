@@ -19,8 +19,8 @@ interface Col {
 }
 
 const COLUMNS: Col[] = [
-  { status: 'idea',             label: 'Ideas',       accent: 'bg-border',      colBg: 'bg-card' },
-  { status: 'briefed',          label: 'In Progress', accent: 'bg-border',      colBg: 'bg-card' },
+  { status: 'idea',             label: 'Idea',        accent: 'bg-border',      colBg: 'bg-card' },
+  { status: 'briefed',          label: 'Briefed',     accent: 'bg-border',      colBg: 'bg-card' },
   { status: 'in_review',        label: 'Review',      accent: 'bg-primary/40',  colBg: 'bg-card' },
   { status: 'ready_to_launch',  label: 'Approved',    accent: 'bg-primary/70',  colBg: 'bg-card' },
   { status: 'launched',         label: 'Launched',    accent: 'bg-primary',     colBg: 'bg-card' },
@@ -115,7 +115,7 @@ function KanbanColumn({ col, items, roadmapId, onEdit, onAdd }: {
   onEdit: (i: RoadmapItem) => void; onAdd: () => void;
 }) {
   return (
-    <div className={cn('flex flex-col rounded-2xl border border-border overflow-hidden flex-shrink-0 w-64', col.colBg)}>
+    <div className={cn('flex flex-col rounded-2xl border border-border overflow-hidden flex-shrink-0 w-56', col.colBg)}>
       {/* Accent bar */}
       <div className={cn('h-1.5 w-full', col.accent)} />
 
@@ -134,7 +134,7 @@ function KanbanColumn({ col, items, roadmapId, onEdit, onAdd }: {
       </div>
 
       {/* Cards */}
-      <div className="flex-1 p-3 space-y-2.5 overflow-y-auto min-h-64">
+      <div className="flex-1 p-2.5 space-y-2 overflow-y-auto max-h-72">
         {items.map((item) => (
           <KanbanCard key={item.id} item={item} roadmapId={roadmapId} onEdit={onEdit} />
         ))}
@@ -308,8 +308,8 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* ── Kanban board ── */}
-      <div className="flex-1 overflow-x-auto overflow-y-auto px-8 py-6">
-        <div className="flex gap-4 h-full min-h-[500px]" style={{ minWidth: `${COLUMNS.length * 272}px` }}>
+      <div className="overflow-x-auto px-8 py-5 flex-shrink-0">
+        <div className="flex gap-3" style={{ minWidth: `${COLUMNS.length * 236}px` }}>
           {COLUMNS.map((col) => (
             <KanbanColumn
               key={col.status}
@@ -324,13 +324,13 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* ── Ads by Status table ── */}
-      <div className="px-8 pb-8 flex-shrink-0">
+      <div className="px-8 pb-8 flex-1 min-h-0 overflow-y-auto">
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <h2 className="text-base font-bold">Ads by Status</h2>
             <button onClick={openNew}
               className="flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors">
-              <Plus className="w-3.5 h-3.5" /> New Ad
+              <Plus className="w-3.5 h-3.5" /> New Creative
             </button>
           </div>
 
