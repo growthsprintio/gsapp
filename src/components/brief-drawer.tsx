@@ -135,10 +135,23 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const updateItem = useAppStore((s) => s.updateItem);
   const namingConvention = useAppStore((s) => s.namingConvention);
   const currentAccount = useAppStore((s) => s.currentAccount)();
+  const updateItemStatus = useAppStore((s) => s.updateItemStatus);
   const [form, setForm] = useState<typeof EMPTY>({ ...EMPTY });
   const [tab, setTab] = useState<'brief' | 'copy' | 'launch'>('brief');
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const customVars = getCustomVariables(namingConvention);
+  const [metaConfigured, setMetaConfigured] = useState<boolean | null>(null);
+  const [launchState, setLaunchState] = useState<'idle' | 'launching' | 'done' | 'error'>('idle');
+  const [launchError, setLaunchError] = useState('');
+
+  useEffect(() => {
+    if (open && tab === 'launch' && metaConfigured === null) {
+      fetch('/api/meta/status')
+        .then((r) => r.json())
+        .then((d) => setMetaConfigured(!!d.configured))
+        .catch(() => setMetaConfigured(false));
+    }
+  }, [open, tab, metaConfigured]);
 
   useEffect(() => {
     if (editItem) {
@@ -209,7 +222,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   // Launch readiness — what Meta needs before an ad can be created
   const readiness = [
     { label: 'Approved status', ok: editItem?.status === 'ready_to_launch' },
-    { label: 'Ad account + Page', ok: !!form.metaAdAccountId && !!form.metaPageId },
+    { label: 'Meta connected', ok: !!metaConfigured },
     { label: 'Objective', ok: !!form.metaObjective },
     { label: 'Daily budget', ok: !!form.metaDailyBudget },
     { label: 'Primary text + headline', ok: !!form.primaryText && !!form.headline },
@@ -218,6 +231,48 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     { label: 'At least one placement', ok: selectedPlacements.length > 0 },
   ];
   const launchReady = readiness.every((r) => r.ok);
+
+  const handlePush = async () => {
+    if (!editItem) return;
+    setLaunchState('launching');
+    setLaunchError('');
+    // Persist the latest form first so config isn't lost.
+    updateItem(roadmapId, editItem.id, form as Partial<RoadmapItem>);
+    try {
+      const res = await fetch('/api/meta/launch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adName: form.adName,
+          primaryText: form.primaryText,
+          headline: form.headline,
+          adDescription: form.adDescription,
+          landingPage: form.landingPage,
+          creativeLink: form.creativeLink,
+          metaObjective: form.metaObjective,
+          metaCampaignName: form.metaCampaignName,
+          metaDailyBudget: form.metaDailyBudget,
+          metaOptimizationGoal: form.metaOptimizationGoal,
+          metaCTA: form.metaCTA,
+          metaStartDate: form.metaStartDate,
+          metaEndDate: form.metaEndDate,
+          metaLocations: form.metaLocations,
+          metaAgeMin: form.metaAgeMin,
+          metaAgeMax: form.metaAgeMax,
+          metaGender: form.metaGender,
+          metaPlacements: form.metaPlacements,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Push failed.');
+      updateItem(roadmapId, editItem.id, { metaAdId: data.adId });
+      updateItemStatus(roadmapId, editItem.id, 'launched');
+      setLaunchState('done');
+    } catch (err) {
+      setLaunchError(err instanceof Error ? err.message : 'Push failed.');
+      setLaunchState('error');
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -600,8 +655,11 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 <div className="bg-muted/50 border border-border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-medium">Launch Readiness</p>
-                    <span className="text-xs text-muted-foreground border border-border rounded px-2 py-0.5">
-                      {editItem?.metaAdId ? `Live: ${editItem.metaAdId}` : `${readiness.filter((r) => r.ok).length}/${readiness.length} ready`}
+                    <span className={cn('text-[10px] font-medium rounded-full px-2 py-0.5 border',
+                      metaConfigured
+                        ? 'bg-primary/5 border-primary/20 text-primary'
+                        : 'bg-secondary border-border text-muted-foreground')}>
+                      {metaConfigured === null ? 'Checking…' : metaConfigured ? 'Meta connected' : 'Meta not connected'}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-4">
@@ -614,15 +672,41 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                       </div>
                     ))}
                   </div>
-                  <button type="button"
-                    disabled={!launchReady}
-                    title={launchReady ? 'Push to Meta (simulated)' : 'Complete the checklist to enable'}
-                    className="w-full flex items-center justify-center gap-2 bg-primary text-white text-sm font-medium py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                    <ExternalLink className="w-4 h-4" />
-                    {editItem?.metaAdId ? 'View in Meta Ads Manager' : 'Push to Meta'}
-                  </button>
+
+                  {launchState === 'error' && (
+                    <div className="flex items-start gap-1.5 text-[11px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3">
+                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                      <span>{launchError}</span>
+                    </div>
+                  )}
+
+                  {editItem?.metaAdId || launchState === 'done' ? (
+                    <div className="flex items-center gap-2 text-primary text-xs font-medium justify-center py-2">
+                      <Check className="w-4 h-4" />
+                      Pushed to Meta (paused){editItem?.metaAdId ? ` · ${editItem.metaAdId}` : ''}
+                    </div>
+                  ) : (
+                    <button type="button"
+                      onClick={handlePush}
+                      disabled={!launchReady || !metaConfigured || launchState === 'launching'}
+                      title={!metaConfigured ? 'Connect Meta in your environment variables' : launchReady ? 'Create a paused ad on Meta' : 'Complete the checklist to enable'}
+                      className="w-full flex items-center justify-center gap-2 bg-primary text-white text-sm font-medium py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      {launchState === 'launching' ? (
+                        <>
+                          <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          Pushing…
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="w-4 h-4" /> Push to Meta
+                        </>
+                      )}
+                    </button>
+                  )}
                   <p className="text-[11px] text-muted-foreground mt-2 text-center">
-                    Push is simulated until Meta is connected. Save the brief to keep this config.
+                    {metaConfigured
+                      ? 'Creates a PAUSED campaign, ad set & ad — activate it in Ads Manager.'
+                      : 'Set META_ACCESS_TOKEN, META_AD_ACCOUNT_ID & META_PAGE_ID to enable real pushes.'}
                   </p>
                 </div>
               </>
