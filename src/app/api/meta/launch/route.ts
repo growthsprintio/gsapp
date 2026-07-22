@@ -25,8 +25,7 @@ export async function POST(req: Request) {
     ['adName', payload.adName],
     ['creativeLink (image URL)', payload.creativeLink],
     ['landingPage', payload.landingPage],
-    ['metaObjective', payload.metaObjective],
-    ['metaDailyBudget', payload.metaDailyBudget],
+    ['metaAdSetId (target ad set)', payload.metaAdSetId],
   ].filter(([, v]) => !v).map(([k]) => k);
   if (missing.length) {
     return NextResponse.json({ error: `Missing required fields: ${missing.join(', ')}` }, { status: 400 });

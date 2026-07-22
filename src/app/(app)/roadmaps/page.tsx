@@ -186,20 +186,14 @@ export default function RoadmapsPage() {
             {active.length} active
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search Roadmaps"
-              className="bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm pl-9 pr-4 py-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary/30 w-52"
-            />
-          </div>
-          <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 bg-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-colors">
-            <Plus className="w-4 h-4" /> New Roadmap
-          </button>
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search Roadmaps"
+            className="bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm pl-9 pr-4 py-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary/30 w-52"
+          />
         </div>
       </div>
 

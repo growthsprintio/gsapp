@@ -78,7 +78,8 @@ export function applyNamingConvention(
     } else if (v.key === 'b') {
       raw = extra?.brand || v.fallback;
     } else if (v.source === 'field' && v.field) {
-      raw = (item[v.field] as string) || '';
+      // Multi-select fields store comma-joined values — name from the first selection.
+      raw = ((item[v.field] as string) || '').split(',')[0].trim();
     }
 
     const mapping = v.values?.find((m) => m.match.toLowerCase() === raw.toLowerCase());

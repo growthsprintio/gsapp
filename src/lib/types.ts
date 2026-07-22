@@ -48,6 +48,8 @@ export interface RoadmapItem {
   metaInstagramId?: string;
   metaObjective?: string;
   metaCampaignName?: string;
+  metaCampaignId?: string; // existing campaign the ad launches into
+  metaAdSetId?: string;    // existing ad set the ad launches into
   metaDailyBudget?: string;
   metaOptimizationGoal?: string;
   metaCTA?: string;
@@ -78,7 +80,7 @@ export interface Roadmap {
 
 export interface CopyBankEntry {
   id: string;
-  type: 'primary_text' | 'headline' | 'description' | 'hook';
+  type: 'primary_text' | 'headline' | 'description' | 'hook' | 'angle' | 'product';
   content: string;
   tags: string[];
   usageCount: number;

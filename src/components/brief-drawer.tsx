@@ -5,7 +5,7 @@ import { useAppStore } from '@/lib/store';
 import { applyNamingConvention, getCustomVariables } from '@/lib/utils';
 import {
   FORMAT_OPTIONS, SIZE_OPTIONS, type RoadmapItem, type AdFormat,
-  META_OBJECTIVES, META_OPTIMIZATION_GOALS, META_CTAS, META_PLACEMENTS, META_GENDERS,
+  META_CTAS,
 } from '@/lib/types';
 import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,13 +13,19 @@ import { useRef } from 'react';
 
 const DEFAULT_ANGLES = ['Pain Point', 'Social Proof', 'Hook', 'Curiosity', 'Urgency', 'Lifestyle', 'Before/After', 'Tutorial', 'Comparison', 'Testimonial', 'UGC Raw', 'Founder Story'];
 
-function AngleMultiSelect({ selected, onChange }: { selected: string[]; onChange: (angles: string[]) => void }) {
+function TagMultiSelect({ selected, onChange, options, placeholder, onCreate }: {
+  selected: string[];
+  onChange: (values: string[]) => void;
+  options: string[];
+  placeholder: string;
+  onCreate?: (value: string) => void; // fired when a brand-new value is created (e.g. persist to a bank)
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const allOptions = [...new Set([...DEFAULT_ANGLES, ...selected])];
+  const allOptions = [...new Set([...options, ...selected])];
   const filtered = allOptions.filter(
     (a) => !selected.includes(a) && a.toLowerCase().includes(query.toLowerCase())
   );
@@ -29,6 +35,11 @@ function AngleMultiSelect({ selected, onChange }: { selected: string[]; onChange
     onChange([...selected, angle]);
     setQuery('');
     inputRef.current?.focus();
+  };
+
+  const createNew = (value: string) => {
+    onCreate?.(value);
+    addAngle(value);
   };
 
   const removeAngle = (angle: string) => {
@@ -42,7 +53,7 @@ function AngleMultiSelect({ selected, onChange }: { selected: string[]; onChange
     if (e.key === 'Enter') {
       e.preventDefault();
       if (canCreate && query.trim()) {
-        addAngle(query.trim());
+        createNew(query.trim());
       } else if (filtered.length > 0) {
         addAngle(filtered[0]);
       }
@@ -79,7 +90,7 @@ function AngleMultiSelect({ selected, onChange }: { selected: string[]; onChange
           onFocus={() => setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 200)}
           onKeyDown={handleKeyDown}
-          placeholder={selected.length === 0 ? 'Search or create angles...' : 'Add more...'}
+          placeholder={selected.length === 0 ? placeholder : 'Add more...'}
           className="flex-1 min-w-[100px] text-sm bg-transparent outline-none placeholder:text-muted-foreground py-0.5"
         />
         <ChevronDown className={cn('w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0', isOpen && 'rotate-180')} />
@@ -99,7 +110,7 @@ function AngleMultiSelect({ selected, onChange }: { selected: string[]; onChange
           {canCreate && (
             <button type="button"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => addAngle(query.trim())}
+              onClick={() => createNew(query.trim())}
               className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-primary">
               <span className="text-xs font-medium">Create</span>
               <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-md">{query.trim()}</span>
@@ -123,11 +134,8 @@ const EMPTY = {
   description: '', primaryText: '', headline: '', adDescription: '',
   inspirationLink: '', creativeLink: '', frameioLink: '', landingPage: '',
   product: '', dueDate: '', adLength: '',
-  // Meta launch config
-  metaAdAccountId: '', metaPageId: '', metaInstagramId: '', metaObjective: '',
-  metaCampaignName: '', metaDailyBudget: '', metaOptimizationGoal: '', metaCTA: '',
-  metaStartDate: '', metaEndDate: '', metaLocations: '', metaAgeMin: '', metaAgeMax: '',
-  metaGender: '', metaInterests: '', metaPlacements: '',
+  // Meta launch config — ads launch into EXISTING campaigns/ad sets
+  metaCampaignId: '', metaAdSetId: '', metaCTA: '',
 };
 
 export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
@@ -136,11 +144,18 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const namingConvention = useAppStore((s) => s.namingConvention);
   const currentAccount = useAppStore((s) => s.currentAccount)();
   const updateItemStatus = useAppStore((s) => s.updateItemStatus);
+  const copyBank = useAppStore((s) => s.copyBank);
+  const addCopyEntry = useAppStore((s) => s.addCopyEntry);
+  const bankAngles = copyBank.filter((c) => c.type === 'angle').map((c) => c.content);
+  const bankProducts = copyBank.filter((c) => c.type === 'product').map((c) => c.content);
   const [form, setForm] = useState<typeof EMPTY>({ ...EMPTY });
   const [tab, setTab] = useState<'brief' | 'copy' | 'launch'>('brief');
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const customVars = getCustomVariables(namingConvention);
   const [metaConfigured, setMetaConfigured] = useState<boolean | null>(null);
+  const [metaAccount, setMetaAccount] = useState<string | null>(null);
+  const [adSets, setAdSets] = useState<{ id: string; name: string; status: string; campaignId: string; campaignName: string }[]>([]);
+  const [adSetsLoading, setAdSetsLoading] = useState(false);
   const [launchState, setLaunchState] = useState<'idle' | 'launching' | 'done' | 'error'>('idle');
   const [launchError, setLaunchError] = useState('');
 
@@ -148,10 +163,22 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     if (open && tab === 'launch' && metaConfigured === null) {
       fetch('/api/meta/status')
         .then((r) => r.json())
-        .then((d) => setMetaConfigured(!!d.configured))
+        .then((d) => { setMetaConfigured(!!d.configured); setMetaAccount(d.adAccountId || null); })
         .catch(() => setMetaConfigured(false));
     }
   }, [open, tab, metaConfigured]);
+
+  // Load existing campaigns/ad sets for the launch selector
+  useEffect(() => {
+    if (open && tab === 'launch' && metaConfigured && adSets.length === 0 && !adSetsLoading) {
+      setAdSetsLoading(true);
+      fetch('/api/meta/adsets')
+        .then((r) => r.json())
+        .then((d) => setAdSets(d.adsets || []))
+        .catch(() => setAdSets([]))
+        .finally(() => setAdSetsLoading(false));
+    }
+  }, [open, tab, metaConfigured, adSets.length, adSetsLoading]);
 
   useEffect(() => {
     if (editItem) {
@@ -172,22 +199,9 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
         product: editItem.product || '',
         dueDate: editItem.dueDate || '',
         adLength: editItem.adLength || '',
-        metaAdAccountId: editItem.metaAdAccountId || '',
-        metaPageId: editItem.metaPageId || '',
-        metaInstagramId: editItem.metaInstagramId || '',
-        metaObjective: editItem.metaObjective || '',
-        metaCampaignName: editItem.metaCampaignName || '',
-        metaDailyBudget: editItem.metaDailyBudget || '',
-        metaOptimizationGoal: editItem.metaOptimizationGoal || '',
+        metaCampaignId: editItem.metaCampaignId || '',
+        metaAdSetId: editItem.metaAdSetId || '',
         metaCTA: editItem.metaCTA || '',
-        metaStartDate: editItem.metaStartDate || '',
-        metaEndDate: editItem.metaEndDate || '',
-        metaLocations: editItem.metaLocations || '',
-        metaAgeMin: editItem.metaAgeMin || '',
-        metaAgeMax: editItem.metaAgeMax || '',
-        metaGender: editItem.metaGender || '',
-        metaInterests: editItem.metaInterests || '',
-        metaPlacements: editItem.metaPlacements || '',
       });
     } else {
       setForm({ ...EMPTY });
@@ -210,25 +224,23 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     set('adName', name);
   };
 
-  // Meta launch placements are stored as a comma-joined string
-  const selectedPlacements = form.metaPlacements ? form.metaPlacements.split(',').filter(Boolean) : [];
-  const togglePlacement = (value: string) => {
-    const next = selectedPlacements.includes(value)
-      ? selectedPlacements.filter((p) => p !== value)
-      : [...selectedPlacements, value];
-    set('metaPlacements', next.join(','));
+  // Ad sizes are multi-select, stored comma-joined
+  const selectedSizes = form.adSize ? form.adSize.split(',').map((s) => s.trim()).filter(Boolean) : [];
+  const toggleSize = (size: string) => {
+    const next = selectedSizes.includes(size)
+      ? selectedSizes.filter((s) => s !== size)
+      : [...selectedSizes, size];
+    set('adSize', next.join(', '));
   };
 
-  // Launch readiness — what Meta needs before an ad can be created
+  // Launch readiness — the ad set owns budget/targeting/schedule; we only need the creative + destination
   const readiness = [
     { label: 'Approved status', ok: editItem?.status === 'ready_to_launch' },
     { label: 'Meta connected', ok: !!metaConfigured },
-    { label: 'Objective', ok: !!form.metaObjective },
-    { label: 'Daily budget', ok: !!form.metaDailyBudget },
+    { label: 'Campaign & ad set selected', ok: !!form.metaAdSetId },
     { label: 'Primary text + headline', ok: !!form.primaryText && !!form.headline },
     { label: 'Landing page + CTA', ok: !!form.landingPage && !!form.metaCTA },
     { label: 'Creative asset', ok: !!form.creativeLink },
-    { label: 'At least one placement', ok: selectedPlacements.length > 0 },
   ];
   const launchReady = readiness.every((r) => r.ok);
 
@@ -249,18 +261,8 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
           adDescription: form.adDescription,
           landingPage: form.landingPage,
           creativeLink: form.creativeLink,
-          metaObjective: form.metaObjective,
-          metaCampaignName: form.metaCampaignName,
-          metaDailyBudget: form.metaDailyBudget,
-          metaOptimizationGoal: form.metaOptimizationGoal,
           metaCTA: form.metaCTA,
-          metaStartDate: form.metaStartDate,
-          metaEndDate: form.metaEndDate,
-          metaLocations: form.metaLocations,
-          metaAgeMin: form.metaAgeMin,
-          metaAgeMax: form.metaAgeMax,
-          metaGender: form.metaGender,
-          metaPlacements: form.metaPlacements,
+          metaAdSetId: form.metaAdSetId,
         }),
       });
       const data = await res.json();
@@ -363,21 +365,32 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-medium block mb-1.5">Ad Size</label>
-                    <select value={form.adSize} onChange={(e) => set('adSize', e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                      {SIZE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    <label className="text-xs font-medium block mb-1.5">Ad Size <span className="text-muted-foreground font-normal">(multi)</span></label>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {SIZE_OPTIONS.map((s) => (
+                        <button type="button" key={s} onClick={() => toggleSize(s)}
+                          className={cn('text-xs px-2.5 py-1.5 rounded-lg border transition-colors',
+                            selectedSizes.includes(s)
+                              ? 'border-primary bg-primary/5 text-primary font-medium'
+                              : 'border-border text-muted-foreground hover:border-primary/30')}>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* Angle — multi-select */}
+                {/* Angle — multi-select, backed by the Angle bank */}
                 <div>
                   <label className="text-xs font-medium block mb-1.5">Creative Angle</label>
-                  <AngleMultiSelect
+                  <TagMultiSelect
                     selected={form.angle ? form.angle.split(', ').filter(Boolean) : []}
                     onChange={(angles) => set('angle', angles.join(', '))}
+                    options={[...new Set([...DEFAULT_ANGLES, ...bankAngles])]}
+                    placeholder="Search or create angles..."
+                    onCreate={(v) => addCopyEntry({ type: 'angle', content: v, tags: [] })}
                   />
+                  <p className="text-[11px] text-muted-foreground mt-1">New angles are saved to your Angle bank in Copy Bank.</p>
                 </div>
 
                 {/* Concept */}
@@ -399,14 +412,18 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                   />
                 </div>
 
-                {/* Product + Due Date */}
+                {/* Product (multi, backed by Product bank) + Due Date */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium block mb-1.5">Product</label>
-                    <input value={form.product} onChange={(e) => set('product', e.target.value)}
-                      placeholder="e.g. Serum Pro"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    <label className="text-xs font-medium block mb-1.5">Product <span className="text-muted-foreground font-normal">(multi)</span></label>
+                    <TagMultiSelect
+                      selected={form.product ? form.product.split(', ').filter(Boolean) : []}
+                      onChange={(products) => set('product', products.join(', '))}
+                      options={bankProducts}
+                      placeholder="Select or add products..."
+                      onCreate={(v) => addCopyEntry({ type: 'product', content: v, tags: [] })}
                     />
+                    <p className="text-[11px] text-muted-foreground mt-1">First product is used in the ad name.</p>
                   </div>
                   <div>
                     <label className="text-xs font-medium block mb-1.5">Due Date</label>
@@ -488,148 +505,52 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 <div className="bg-secondary/60 border border-border rounded-lg p-4">
                   <p className="text-xs font-medium mb-1">Meta Launch Setup</p>
                   <p className="text-xs text-muted-foreground">
-                    These fields map directly to Meta&apos;s Campaign → Ad Set → Ad → Creative objects. Meta isn&apos;t connected yet — for now this is saved with the brief.
+                    Pick the existing campaign and ad set to launch this creative into. Budget, targeting, schedule and placements are owned by the ad set — we only create the ad (paused).
                   </p>
+                  {metaConfigured && metaAccount && (
+                    <p className="text-[11px] text-primary font-mono mt-2">Pushing to {metaAccount}</p>
+                  )}
                 </div>
 
-                {/* ── Destination ── */}
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Destination</p>
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Ad Account</label>
-                  <input value={form.metaAdAccountId} onChange={(e) => set('metaAdAccountId', e.target.value)}
-                    placeholder="act_1234567890"
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Facebook Page</label>
-                    <input value={form.metaPageId} onChange={(e) => set('metaPageId', e.target.value)}
-                      placeholder="Page ID or name"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Instagram (optional)</label>
-                    <input value={form.metaInstagramId} onChange={(e) => set('metaInstagramId', e.target.value)}
-                      placeholder="@handle or ID"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-
-                {/* ── Campaign ── */}
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Campaign</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Objective</label>
-                    <select value={form.metaObjective} onChange={(e) => set('metaObjective', e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                      <option value="">Select objective</option>
-                      {META_OBJECTIVES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Campaign Name</label>
-                    <input value={form.metaCampaignName} onChange={(e) => set('metaCampaignName', e.target.value)}
-                      placeholder="New or existing"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-
-                {/* ── Budget & Schedule ── */}
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Budget &amp; Schedule</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Daily Budget (USD)</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-                      <input type="number" min="1" value={form.metaDailyBudget} onChange={(e) => set('metaDailyBudget', e.target.value)}
-                        placeholder="50"
-                        className="w-full border border-border rounded-lg pl-7 pr-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
+                {/* ── Destination: existing campaign + ad set ── */}
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Launch Into</p>
+                {!metaConfigured ? (
+                  <p className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-lg px-3 py-2.5">
+                    Connect Meta (env credentials) to load your campaigns and ad sets.
+                  </p>
+                ) : adSetsLoading ? (
+                  <p className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-lg px-3 py-2.5">Loading campaigns…</p>
+                ) : adSets.length === 0 ? (
+                  <p className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-lg px-3 py-2.5">
+                    No ad sets found in this account — create a campaign &amp; ad set in Ads Manager first.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium block mb-1.5">Campaign</label>
+                      <select value={form.metaCampaignId}
+                        onChange={(e) => { set('metaCampaignId', e.target.value); set('metaAdSetId', ''); }}
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                        <option value="">Select campaign…</option>
+                        {[...new Map(adSets.map((a) => [a.campaignId, a.campaignName])).entries()].map(([id, name]) => (
+                          <option key={id} value={id}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1.5">Ad Set</label>
+                      <select value={form.metaAdSetId}
+                        onChange={(e) => set('metaAdSetId', e.target.value)}
+                        disabled={!form.metaCampaignId}
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50">
+                        <option value="">{form.metaCampaignId ? 'Select ad set…' : 'Pick a campaign first'}</option>
+                        {adSets.filter((a) => a.campaignId === form.metaCampaignId).map((a) => (
+                          <option key={a.id} value={a.id}>{a.name}{a.status !== 'ACTIVE' ? ` (${a.status.toLowerCase()})` : ''}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Optimization Goal</label>
-                    <select value={form.metaOptimizationGoal} onChange={(e) => set('metaOptimizationGoal', e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                      <option value="">Select goal</option>
-                      {META_OPTIMIZATION_GOALS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Start Date</label>
-                    <input type="date" value={form.metaStartDate} onChange={(e) => set('metaStartDate', e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">End Date (optional)</label>
-                    <input type="date" value={form.metaEndDate} onChange={(e) => set('metaEndDate', e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-
-                {/* ── Targeting ── */}
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Targeting</p>
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Locations</label>
-                  <input value={form.metaLocations} onChange={(e) => set('metaLocations', e.target.value)}
-                    placeholder="e.g. United States, Canada"
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Age Min</label>
-                    <input type="number" min="13" max="65" value={form.metaAgeMin} onChange={(e) => set('metaAgeMin', e.target.value)}
-                      placeholder="18"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Age Max</label>
-                    <input type="number" min="13" max="65" value={form.metaAgeMax} onChange={(e) => set('metaAgeMax', e.target.value)}
-                      placeholder="65"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Gender</label>
-                    <select value={form.metaGender} onChange={(e) => set('metaGender', e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                      <option value="">All</option>
-                      {META_GENDERS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Interests / Detailed Targeting</label>
-                  <input value={form.metaInterests} onChange={(e) => set('metaInterests', e.target.value)}
-                    placeholder="e.g. Skincare, Beauty, Wellness"
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-
-                {/* ── Placements ── */}
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Placements</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {META_PLACEMENTS.map((p) => {
-                    const active = selectedPlacements.includes(p.value);
-                    return (
-                      <button type="button" key={p.value} onClick={() => togglePlacement(p.value)}
-                        className={cn('text-xs px-2.5 py-1 rounded-full border transition-colors',
-                          active ? 'border-primary bg-primary/5 text-primary font-medium' : 'border-border text-muted-foreground hover:border-primary/30')}>
-                        {p.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                )}
 
                 {/* ── Ad / Creative ── */}
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Ad</p>

@@ -2,8 +2,10 @@
  * Meta Marketing API client — SERVER ONLY.
  * Never import this into client components; it reads secrets from process.env.
  *
- * MVP scope: single ad account (credentials in env vars), image ads via a
- * public image URL (option A), everything created PAUSED for human review.
+ * Model: ads are launched INTO EXISTING campaigns/ad sets (picked in the UI).
+ * We never create campaigns or ad sets — budget, targeting, schedule and
+ * placements are owned by the ad set the user selects. Everything we create
+ * (creative + ad) starts PAUSED for human review.
  */
 
 export interface MetaConfig {
@@ -15,9 +17,11 @@ export interface MetaConfig {
 }
 
 export function getMetaConfig(): MetaConfig | null {
-  const token = process.env.META_ACCESS_TOKEN;
-  const adAccountId = process.env.META_AD_ACCOUNT_ID;
-  const pageId = process.env.META_PAGE_ID;
+  // Treat unset OR template-placeholder values (from .env.example / scaffold) as not configured.
+  const clean = (v?: string) => (v && !v.includes('PASTE_') ? v : undefined);
+  const token = clean(process.env.META_ACCESS_TOKEN);
+  const adAccountId = clean(process.env.META_AD_ACCOUNT_ID);
+  const pageId = clean(process.env.META_PAGE_ID);
   if (!token || !adAccountId || !pageId) return null;
   return {
     token,
@@ -28,30 +32,13 @@ export function getMetaConfig(): MetaConfig | null {
   };
 }
 
-/** The subset of a RoadmapItem the client sends to /api/meta/launch. */
-export interface LaunchPayload {
-  adName: string;
-  primaryText?: string;
-  headline?: string;
-  adDescription?: string;
-  landingPage?: string;
-  creativeLink?: string; // public image URL (option A)
-  metaObjective?: string;
-  metaCampaignName?: string;
-  metaDailyBudget?: string;
-  metaOptimizationGoal?: string;
-  metaCTA?: string;
-  metaStartDate?: string;
-  metaEndDate?: string;
-  metaLocations?: string;
-  metaAgeMin?: string;
-  metaAgeMax?: string;
-  metaGender?: string;
-  metaPlacements?: string; // comma-joined
-}
-
 const graph = (cfg: MetaConfig, path: string) =>
   `https://graph.facebook.com/${cfg.version}/${path}`;
+
+function toApiError(json: Record<string, any>, status: number): Error {
+  const e = json.error || {};
+  return new Error(e.error_user_msg || e.message || `Meta API error (${status})`);
+}
 
 async function metaPost(cfg: MetaConfig, path: string, body: Record<string, unknown>) {
   const res = await fetch(graph(cfg, path), {
@@ -60,106 +47,65 @@ async function metaPost(cfg: MetaConfig, path: string, body: Record<string, unkn
     body: JSON.stringify({ ...body, access_token: cfg.token }),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok || json.error) {
-    const e = json.error || {};
-    throw new Error(e.error_user_msg || e.message || `Meta API error (${res.status})`);
-  }
+  if (!res.ok || json.error) throw toApiError(json, res.status);
   return json as { id: string };
 }
 
-// ── small mappers ─────────────────────────────────────────────────────────────
-
-const COUNTRY_CODES: Record<string, string> = {
-  'united states': 'US', usa: 'US', us: 'US', 'united kingdom': 'GB', uk: 'GB',
-  canada: 'CA', ca: 'CA', australia: 'AU', au: 'AU', germany: 'DE', france: 'FR',
-  spain: 'ES', italy: 'IT', netherlands: 'NL', ireland: 'IE', mexico: 'MX',
-  brazil: 'BR', india: 'IN', japan: 'JP', 'new zealand': 'NZ',
-};
-
-function toCountryCodes(raw?: string): string[] {
-  if (!raw) return ['US'];
-  const codes = raw.split(',').map((s) => s.trim()).filter(Boolean).map((tok) => {
-    const lc = tok.toLowerCase();
-    if (COUNTRY_CODES[lc]) return COUNTRY_CODES[lc];
-    if (/^[A-Za-z]{2}$/.test(tok)) return tok.toUpperCase(); // already an ISO code
-    return null;
-  }).filter(Boolean) as string[];
-  return codes.length ? [...new Set(codes)] : ['US'];
+async function metaGet(cfg: MetaConfig, path: string, params: Record<string, string>) {
+  const qs = new URLSearchParams({ ...params, access_token: cfg.token });
+  const res = await fetch(`${graph(cfg, path)}?${qs}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.error) throw toApiError(json, res.status);
+  return json;
 }
 
-// our placement value -> Meta publisher platform + position field
-const PLACEMENT_MAP: Record<string, { platform: string; posField: string; pos: string }> = {
-  facebook_feed: { platform: 'facebook', posField: 'facebook_positions', pos: 'feed' },
-  facebook_reels: { platform: 'facebook', posField: 'facebook_positions', pos: 'facebook_reels' },
-  facebook_marketplace: { platform: 'facebook', posField: 'facebook_positions', pos: 'marketplace' },
-  instagram_feed: { platform: 'instagram', posField: 'instagram_positions', pos: 'stream' },
-  instagram_reels: { platform: 'instagram', posField: 'instagram_positions', pos: 'reels' },
-  instagram_stories: { platform: 'instagram', posField: 'instagram_positions', pos: 'story' },
-  audience_network: { platform: 'audience_network', posField: 'audience_network_positions', pos: 'classic' },
-  messenger_inbox: { platform: 'messenger', posField: 'messenger_positions', pos: 'messenger_home' },
-};
+// ── list existing campaigns / ad sets (for the launch selector) ───────────────
 
-function buildTargeting(p: LaunchPayload) {
-  const targeting: Record<string, unknown> = {
-    geo_locations: { countries: toCountryCodes(p.metaLocations) },
-  };
-  if (p.metaAgeMin) targeting.age_min = Number(p.metaAgeMin);
-  if (p.metaAgeMax) targeting.age_max = Number(p.metaAgeMax);
-  if (p.metaGender === 'men') targeting.genders = [1];
-  else if (p.metaGender === 'women') targeting.genders = [2];
-
-  const selected = (p.metaPlacements || '').split(',').map((s) => s.trim()).filter(Boolean);
-  if (selected.length) {
-    const platforms = new Set<string>();
-    const positions: Record<string, Set<string>> = {};
-    for (const key of selected) {
-      const m = PLACEMENT_MAP[key];
-      if (!m) continue;
-      platforms.add(m.platform);
-      (positions[m.posField] ||= new Set()).add(m.pos);
-    }
-    if (platforms.size) {
-      targeting.publisher_platforms = [...platforms];
-      for (const [field, set] of Object.entries(positions)) targeting[field] = [...set];
-    }
-  }
-  return targeting;
+export interface AdSetOption {
+  id: string;
+  name: string;
+  status: string;
+  campaignId: string;
+  campaignName: string;
 }
 
-// ── orchestrator: Campaign → Ad Set → Ad Creative → Ad (all PAUSED) ─────────────
+export async function listAdSets(cfg: MetaConfig): Promise<AdSetOption[]> {
+  const json = await metaGet(cfg, `${cfg.adAccountId}/adsets`, {
+    fields: 'id,name,status,campaign{id,name,status}',
+    limit: '200',
+  });
+  return (json.data || []).map((a: any) => ({
+    id: a.id,
+    name: a.name,
+    status: a.status,
+    campaignId: a.campaign?.id || '',
+    campaignName: a.campaign?.name || 'Unknown campaign',
+  }));
+}
+
+// ── launch: create Ad Creative + Ad inside an EXISTING ad set ─────────────────
+
+/** The subset of a RoadmapItem the client sends to /api/meta/launch. */
+export interface LaunchPayload {
+  adName: string;
+  primaryText?: string;
+  headline?: string;
+  adDescription?: string;
+  landingPage?: string;
+  creativeLink?: string; // public image URL (option A)
+  metaCTA?: string;
+  metaAdSetId?: string; // REQUIRED — the existing ad set to launch into
+}
 
 export interface LaunchResult {
-  campaignId: string;
-  adSetId: string;
   creativeId: string;
   adId: string;
 }
 
 export async function launchToMeta(cfg: MetaConfig, p: LaunchPayload): Promise<LaunchResult> {
-  // 1. Campaign
-  const campaign = await metaPost(cfg, `${cfg.adAccountId}/campaigns`, {
-    name: p.metaCampaignName || `${p.adName} — Campaign`,
-    objective: p.metaObjective || 'OUTCOME_TRAFFIC',
-    status: 'PAUSED',
-    special_ad_categories: [],
-  });
+  if (!p.metaAdSetId) throw new Error('No ad set selected.');
 
-  // 2. Ad Set
-  const adSetBody: Record<string, unknown> = {
-    name: `${p.adName} — Ad Set`,
-    campaign_id: campaign.id,
-    daily_budget: String(Math.round(Number(p.metaDailyBudget || '0') * 100)), // dollars → cents
-    billing_event: 'IMPRESSIONS',
-    optimization_goal: p.metaOptimizationGoal || 'LINK_CLICKS',
-    bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
-    targeting: buildTargeting(p),
-    status: 'PAUSED',
-  };
-  if (p.metaStartDate) adSetBody.start_time = `${p.metaStartDate}T00:00:00+0000`;
-  if (p.metaEndDate) adSetBody.end_time = `${p.metaEndDate}T23:59:59+0000`;
-  const adSet = await metaPost(cfg, `${cfg.adAccountId}/adsets`, adSetBody);
-
-  // 3. Ad Creative (image ad via public URL — option A)
+  // 1. Ad Creative (image ad via public URL — option A)
   const linkData: Record<string, unknown> = {
     link: p.landingPage,
     message: p.primaryText,
@@ -177,15 +123,15 @@ export async function launchToMeta(cfg: MetaConfig, p: LaunchPayload): Promise<L
     object_story_spec: storySpec,
   });
 
-  // 4. Ad
+  // 2. Ad — into the selected existing ad set, PAUSED for review
   const ad = await metaPost(cfg, `${cfg.adAccountId}/ads`, {
     name: p.adName,
-    adset_id: adSet.id,
+    adset_id: p.metaAdSetId,
     creative: { creative_id: creative.id },
     status: 'PAUSED',
   });
 
-  return { campaignId: campaign.id, adSetId: adSet.id, creativeId: creative.id, adId: ad.id };
+  return { creativeId: creative.id, adId: ad.id };
 }
 
 // ── ad insights (reporting) ───────────────────────────────────────────────────
@@ -202,17 +148,10 @@ export interface AdInsights {
 }
 
 export async function getAdInsights(cfg: MetaConfig, adId: string): Promise<AdInsights | null> {
-  const params = new URLSearchParams({
+  const json = await metaGet(cfg, `${adId}/insights`, {
     fields: 'impressions,reach,clicks,spend,ctr,cpc',
     date_preset: 'last_30d',
-    access_token: cfg.token,
   });
-  const res = await fetch(`${graph(cfg, adId)}/insights?${params}`);
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json.error) {
-    const e = json.error || {};
-    throw new Error(e.error_user_msg || e.message || `Meta API error (${res.status})`);
-  }
   const row = json.data?.[0];
   if (!row) return null; // no delivery yet
   return {

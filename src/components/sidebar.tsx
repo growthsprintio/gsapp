@@ -110,6 +110,11 @@ function AccountSwitcher() {
 export function Sidebar() {
   const pathname = usePathname();
   const user = useAppStore((s) => s.user);
+  const roadmaps = useAppStore((s) => s.roadmaps);
+  const currentAccountId = useAppStore((s) => s.currentAccountId);
+  const [roadmapsOpen, setRoadmapsOpen] = useState(true);
+
+  const activeRoadmaps = roadmaps.filter((r) => r.accountId === currentAccountId && r.status === 'active');
 
   return (
     <aside className="w-56 h-screen flex flex-col border-r border-border bg-sidebar sticky top-0">
@@ -127,24 +132,53 @@ export function Sidebar() {
       <AccountSwitcher />
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-3 space-y-0.5">
+      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
+          const isRoadmaps = href === '/roadmaps';
           return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors group',
+            <div key={href}>
+              <div className={cn(
+                'flex items-center rounded-lg text-sm transition-colors',
                 active
                   ? 'bg-primary/10 text-primary font-medium'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              )}>
+                <Link href={href} className="flex items-center gap-2.5 px-2.5 py-2 flex-1 min-w-0">
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="flex-1 truncate">{label}</span>
+                </Link>
+                {isRoadmaps && activeRoadmaps.length > 0 ? (
+                  <button onClick={() => setRoadmapsOpen(!roadmapsOpen)}
+                    className="p-1.5 mr-1 rounded hover:bg-background/60 transition-colors"
+                    title={roadmapsOpen ? 'Collapse' : 'Expand'}>
+                    <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', !roadmapsOpen && '-rotate-90')} />
+                  </button>
+                ) : active ? (
+                  <ChevronRight className="w-3 h-3 text-primary opacity-60 mr-2" />
+                ) : null}
+              </div>
+
+              {/* Roadmap sub-list */}
+              {isRoadmaps && roadmapsOpen && activeRoadmaps.length > 0 && (
+                <div className="ml-4 pl-3 border-l border-border mt-0.5 mb-1 space-y-0.5">
+                  {activeRoadmaps.map((r) => {
+                    const rActive = pathname === `/roadmaps/${r.id}`;
+                    return (
+                      <Link key={r.id} href={`/roadmaps/${r.id}`}
+                        className={cn(
+                          'block px-2 py-1.5 rounded-md text-xs truncate transition-colors',
+                          rActive
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        )}>
+                        {r.name}
+                      </Link>
+                    );
+                  })}
+                </div>
               )}
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              <span className="flex-1">{label}</span>
-              {active && <ChevronRight className="w-3 h-3 text-primary opacity-60" />}
-            </Link>
+            </div>
           );
         })}
       </nav>

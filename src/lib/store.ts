@@ -150,6 +150,16 @@ const SEED_COPY: CopyBankEntry[] = [
     content: 'POV: You just found the product that changes your routine forever.',
     tags: ['ugc', 'hook'], usageCount: 2, createdAt: '2025-06-02T00:00:00Z',
   },
+  {
+    id: 'c-4', type: 'angle',
+    content: 'Before & After',
+    tags: ['transformation'], usageCount: 0, createdAt: '2025-06-02T00:00:00Z',
+  },
+  {
+    id: 'c-5', type: 'product',
+    content: 'Serum Pro',
+    tags: [], usageCount: 0, createdAt: '2025-06-02T00:00:00Z',
+  },
 ];
 
 export const useAppStore = create<AppState>()(

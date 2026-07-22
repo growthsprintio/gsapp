@@ -11,6 +11,8 @@ const TYPE_LABELS: Record<CopyBankEntry['type'], string> = {
   headline: 'Headline',
   description: 'Description',
   hook: 'Hook',
+  angle: 'Angle',
+  product: 'Product',
 };
 
 const TYPE_COLORS: Record<CopyBankEntry['type'], string> = {
@@ -18,6 +20,8 @@ const TYPE_COLORS: Record<CopyBankEntry['type'], string> = {
   headline: 'bg-secondary text-foreground',
   description: 'bg-secondary text-muted-foreground',
   hook: 'bg-orange-50 text-orange-700',
+  angle: 'bg-primary/10 text-primary',
+  product: 'bg-stone-100 text-stone-700',
 };
 
 function CopyCard({ entry }: { entry: CopyBankEntry }) {
@@ -109,7 +113,7 @@ export default function CopyBankPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-semibold">Copy Bank</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Reusable ad copy for your team.</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Reusable ad copy, angles, and products — angles &amp; products feed the brief and ad naming.</p>
         </div>
         <button onClick={() => setShowNew(!showNew)}
           className="flex items-center gap-2 bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
@@ -156,7 +160,7 @@ export default function CopyBankPage() {
       {/* Filter + view toggle */}
       <div className="flex items-center justify-between mb-5 gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          {(['all', 'primary_text', 'headline', 'hook', 'description'] as const).map((t) => (
+          {(['all', 'primary_text', 'headline', 'hook', 'description', 'angle', 'product'] as const).map((t) => (
             <button key={t} onClick={() => setFilter(t)}
               className={cn('text-xs px-3 py-1.5 rounded-full border transition-colors',
                 filter === t ? 'bg-foreground text-background border-foreground' : 'border-border text-muted-foreground hover:text-foreground')}>
