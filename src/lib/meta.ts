@@ -187,3 +187,42 @@ export async function launchToMeta(cfg: MetaConfig, p: LaunchPayload): Promise<L
 
   return { campaignId: campaign.id, adSetId: adSet.id, creativeId: creative.id, adId: ad.id };
 }
+
+// ── ad insights (reporting) ───────────────────────────────────────────────────
+
+export interface AdInsights {
+  impressions: number;
+  reach: number;
+  clicks: number;
+  spend: number;
+  ctr: number;
+  cpc: number;
+  dateStart: string;
+  dateStop: string;
+}
+
+export async function getAdInsights(cfg: MetaConfig, adId: string): Promise<AdInsights | null> {
+  const params = new URLSearchParams({
+    fields: 'impressions,reach,clicks,spend,ctr,cpc',
+    date_preset: 'last_30d',
+    access_token: cfg.token,
+  });
+  const res = await fetch(`${graph(cfg, adId)}/insights?${params}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.error) {
+    const e = json.error || {};
+    throw new Error(e.error_user_msg || e.message || `Meta API error (${res.status})`);
+  }
+  const row = json.data?.[0];
+  if (!row) return null; // no delivery yet
+  return {
+    impressions: Number(row.impressions || 0),
+    reach: Number(row.reach || 0),
+    clicks: Number(row.clicks || 0),
+    spend: Number(row.spend || 0),
+    ctr: Number(row.ctr || 0),
+    cpc: Number(row.cpc || 0),
+    dateStart: row.date_start,
+    dateStop: row.date_stop,
+  };
+}

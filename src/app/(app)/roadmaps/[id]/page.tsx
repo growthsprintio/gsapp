@@ -5,9 +5,10 @@ import { STATUS_CONFIG, type CreativeStatus, type RoadmapItem } from '@/lib/type
 import { FORMAT_OPTIONS } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { use, useState } from 'react';
-import { Plus, ArrowLeft, Zap, ExternalLink, ChevronDown, Pencil, Trash2 } from 'lucide-react';
+import { Plus, ArrowLeft, Zap, ExternalLink, ChevronDown, Pencil, Trash2, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { BriefDrawer } from '@/components/brief-drawer';
+import { AdReportDrawer } from '@/components/ad-report-drawer';
 
 // ─── column config ───────────────────────────────────────────────────────────
 
@@ -180,9 +181,13 @@ function KanbanColumn({ col, items, roadmapId, onEdit, onAdd, onDropItem }: {
 
 // ─── table row ────────────────────────────────────────────────────────────────
 
-function TableRow({ item, roadmapId, onEdit }: { item: RoadmapItem; roadmapId: string; onEdit: (i: RoadmapItem) => void }) {
+function TableRow({ item, roadmapId, onEdit, onReport }: {
+  item: RoadmapItem; roadmapId: string;
+  onEdit: (i: RoadmapItem) => void; onReport: (i: RoadmapItem) => void;
+}) {
   const updateItemStatus = useAppStore((s) => s.updateItemStatus);
   const deleteItem = useAppStore((s) => s.deleteItem);
+  const [menu, setMenu] = useState(false);
   const cfg = STATUS_CONFIG[item.status];
 
   return (
@@ -194,7 +199,32 @@ function TableRow({ item, roadmapId, onEdit }: { item: RoadmapItem; roadmapId: s
         )}
       </td>
       <td className="px-4 py-3">
-        <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', cfg.bg, cfg.color)}>{cfg.label}</span>
+        {/* Quick status update */}
+        <div className="relative inline-block">
+          <button onClick={() => setMenu(!menu)}
+            className={cn('flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full transition-opacity hover:opacity-80', cfg.bg, cfg.color)}>
+            {cfg.label}
+            <ChevronDown className="w-3 h-3 opacity-70" />
+          </button>
+          {menu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
+              <div className="absolute left-0 top-full mt-1 z-20 bg-popover border border-border rounded-xl shadow-lg py-1 min-w-36 overflow-hidden">
+                {COLUMNS.map((col) => (
+                  <button key={col.status}
+                    onClick={() => { updateItemStatus(roadmapId, item.id, col.status); setMenu(false); }}
+                    className={cn(
+                      'flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-muted transition-colors text-left',
+                      item.status === col.status ? 'text-primary font-medium' : 'text-foreground'
+                    )}>
+                    <span className={cn('w-2 h-2 rounded-full flex-shrink-0', col.accent)} />
+                    {col.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </td>
       <td className="px-4 py-3 text-sm capitalize text-muted-foreground">{item.adFormat || '—'}</td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{item.angle || '—'}</td>
@@ -205,16 +235,22 @@ function TableRow({ item, roadmapId, onEdit }: { item: RoadmapItem; roadmapId: s
             className="flex items-center gap-1.5 text-xs font-medium bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors">
             <Zap className="w-3 h-3" /> Launch
           </button>
-        ) : item.metaAdId ? (
-          <span className="flex items-center gap-1 text-xs text-primary font-medium">
-            <Zap className="w-3 h-3" /> {item.metaAdId}
-          </span>
+        ) : item.status === 'launched' ? (
+          <button onClick={() => onReport(item)}
+            title="View ad report"
+            className="flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/20 bg-primary/5 px-3 py-1.5 rounded-lg hover:bg-primary/10 transition-colors">
+            <BarChart3 className="w-3 h-3" /> Report
+          </button>
         ) : (
           <span className="text-xs text-muted-foreground">—</span>
         )}
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => onReport(item)} title="Ad report"
+            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors">
+            <BarChart3 className="w-3.5 h-3.5" />
+          </button>
           <button onClick={() => onEdit(item)}
             className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
             <Pencil className="w-3.5 h-3.5" />
@@ -245,6 +281,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editItem, setEditItem] = useState<RoadmapItem | null>(null);
+  const [reportItem, setReportItem] = useState<RoadmapItem | null>(null);
   const [filterFormat, setFilterFormat] = useState('all');
   const [filterStatus, setFilterStatus] = useState<CreativeStatus | 'all'>('all');
 
@@ -351,7 +388,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
             <table className="w-full">
               <thead>
                 <tr className="bg-muted border-b border-border">
-                  {['Concept Name', 'Status', 'Visual Format', 'Angle', 'Launch to Meta', ''].map((h) => (
+                  {['Concept Name', 'Status', 'Visual Format', 'Angle', 'Launch / Report', ''].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{h}</th>
                   ))}
                 </tr>
@@ -365,7 +402,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
                   </tr>
                 ) : (
                   filtered.map((item) => (
-                    <TableRow key={item.id} item={item} roadmapId={roadmap.id} onEdit={openEdit} />
+                    <TableRow key={item.id} item={item} roadmapId={roadmap.id} onEdit={openEdit} onReport={setReportItem} />
                   ))
                 )}
               </tbody>
@@ -404,6 +441,12 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
         onClose={() => { setDrawerOpen(false); setEditItem(null); }}
         roadmapId={roadmap.id}
         editItem={editItem}
+      />
+
+      <AdReportDrawer
+        open={!!reportItem}
+        onClose={() => setReportItem(null)}
+        item={reportItem}
       />
     </div>
   );
