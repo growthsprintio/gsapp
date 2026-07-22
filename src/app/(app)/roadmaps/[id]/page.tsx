@@ -32,9 +32,21 @@ function KanbanCard({ item, roadmapId, onEdit }: { item: RoadmapItem; roadmapId:
   const updateItemStatus = useAppStore((s) => s.updateItemStatus);
   const deleteItem = useAppStore((s) => s.deleteItem);
   const [menu, setMenu] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   return (
-    <div className="bg-card border border-border rounded-xl p-3.5 shadow-sm group hover:shadow-md transition-shadow">
+    <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', item.id);
+        e.dataTransfer.effectAllowed = 'move';
+        setDragging(true);
+      }}
+      onDragEnd={() => setDragging(false)}
+      className={cn(
+        'bg-card border border-border rounded-xl p-3.5 shadow-sm group hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing',
+        dragging && 'opacity-40 ring-2 ring-primary/30'
+      )}>
       {/* Concept / name */}
       <p className="text-sm font-semibold leading-snug mb-1">
         {item.concept || item.adName || <span className="text-muted-foreground italic font-normal">Untitled</span>}
@@ -110,12 +122,28 @@ function KanbanCard({ item, roadmapId, onEdit }: { item: RoadmapItem; roadmapId:
 
 // ─── kanban column ────────────────────────────────────────────────────────────
 
-function KanbanColumn({ col, items, roadmapId, onEdit, onAdd }: {
+function KanbanColumn({ col, items, roadmapId, onEdit, onAdd, onDropItem }: {
   col: Col; items: RoadmapItem[]; roadmapId: string;
   onEdit: (i: RoadmapItem) => void; onAdd: () => void;
+  onDropItem: (itemId: string, status: CreativeStatus) => void;
 }) {
+  const [isOver, setIsOver] = useState(false);
+
   return (
-    <div className={cn('flex flex-col rounded-2xl border border-border overflow-hidden flex-shrink-0 w-56', col.colBg)}>
+    <div
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setIsOver(true); }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsOver(false); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        const itemId = e.dataTransfer.getData('text/plain');
+        if (itemId) onDropItem(itemId, col.status);
+        setIsOver(false);
+      }}
+      className={cn(
+        'flex flex-col rounded-2xl border overflow-hidden flex-shrink-0 w-56 transition-all',
+        col.colBg,
+        isOver ? 'border-primary ring-2 ring-primary/30 scale-[1.01]' : 'border-border'
+      )}>
       {/* Accent bar */}
       <div className={cn('h-1.5 w-full', col.accent)} />
 
@@ -212,6 +240,7 @@ function TableRow({ item, roadmapId, onEdit }: { item: RoadmapItem; roadmapId: s
 export default function RoadmapDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const roadmaps = useAppStore((s) => s.roadmaps);
+  const updateItemStatus = useAppStore((s) => s.updateItemStatus);
   const roadmap = roadmaps.find((r) => r.id === id);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -237,9 +266,9 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
   const colItems = (status: CreativeStatus) => filtered.filter((i) => i.status === status);
 
   return (
-    <div className="flex flex-col h-full">
+    <div>
       {/* ── Top header ── */}
-      <div className="px-8 pt-7 pb-5 border-b border-border bg-background flex-shrink-0">
+      <div className="px-8 pt-7 pb-5 border-b border-border bg-background">
         <Link href="/roadmaps"
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-3 transition-colors w-fit">
           <ArrowLeft className="w-3 h-3" /> Roadmaps
@@ -260,9 +289,9 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
                 </span>
               )}
             </div>
-            <h1 className="text-2xl font-bold">Creative Pipeline Board</h1>
+            <h1 className="text-2xl font-bold">{roadmap.name}</h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-              Move creatives from raw idea to launched ad. Filter by format or status to keep the funnel moving.
+              Every creative in this roadmap, from idea to launched. Drag cards on the board below to move them through the pipeline.
             </p>
           </div>
           <button onClick={openNew}
@@ -307,24 +336,8 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
-      {/* ── Kanban board ── */}
-      <div className="overflow-x-auto px-8 py-5 flex-shrink-0">
-        <div className="flex gap-3" style={{ minWidth: `${COLUMNS.length * 236}px` }}>
-          {COLUMNS.map((col) => (
-            <KanbanColumn
-              key={col.status}
-              col={col}
-              items={colItems(col.status)}
-              roadmapId={roadmap.id}
-              onEdit={openEdit}
-              onAdd={openNew}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* ── Ads by Status table ── */}
-      <div className="px-8 pb-8 flex-1 min-h-0 overflow-y-auto">
+      {/* ── Ads by Status table — PRIMARY ── */}
+      <div className="px-8 pt-6 pb-2">
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <h2 className="text-base font-bold">Ads by Status</h2>
@@ -357,6 +370,31 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Pipeline board (secondary) — drag & drop to change status ── */}
+      <div className="px-8 pt-4 pb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="text-sm font-semibold">Pipeline Board</h2>
+          <span className="text-[11px] text-muted-foreground bg-secondary border border-border rounded-full px-2 py-0.5">
+            Drag cards between columns to update status
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <div className="flex gap-3" style={{ minWidth: `${COLUMNS.length * 236}px` }}>
+            {COLUMNS.map((col) => (
+              <KanbanColumn
+                key={col.status}
+                col={col}
+                items={colItems(col.status)}
+                roadmapId={roadmap.id}
+                onEdit={openEdit}
+                onAdd={openNew}
+                onDropItem={(itemId, status) => updateItemStatus(roadmap.id, itemId, status)}
+              />
+            ))}
           </div>
         </div>
       </div>
