@@ -90,9 +90,9 @@ export function AdReportDrawer({ open, onClose, item }: Props) {
   ] : [];
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="w-[440px] h-full bg-card border-l border-border flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-2xl max-h-[90vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-5 border-b border-border">
           <div className="min-w-0">
@@ -144,7 +144,7 @@ export function AdReportDrawer({ open, onClose, item }: Props) {
 
           {/* Metrics grid */}
           {metrics ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {cards.map(({ label, value }) => (
                 <div key={label} className="bg-card border border-border rounded-xl p-4">
                   <p className="text-xs text-muted-foreground mb-1">{label}</p>
@@ -153,7 +153,7 @@ export function AdReportDrawer({ open, onClose, item }: Props) {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="bg-secondary/50 border border-border rounded-xl p-4 h-20 animate-pulse" />
               ))}
