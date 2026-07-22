@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Account, Roadmap, RoadmapItem, CopyBankEntry, CreativeStatus, NamingConvention } from './types';
+import type { Account, Roadmap, RoadmapItem, CopyBankEntry, CreativeBankEntry, CreativeStatus, NamingConvention } from './types';
 import { nanoid, DEFAULT_NAMING_CONVENTION } from './utils';
 
 interface AppState {
@@ -36,6 +36,11 @@ interface AppState {
 
   // Copy bank
   addCopyEntry: (entry: Omit<CopyBankEntry, 'id' | 'usageCount' | 'createdAt'>) => void;
+
+  // Creative bank (external links only)
+  creativeBank: CreativeBankEntry[];
+  addCreativeEntry: (entry: Omit<CreativeBankEntry, 'id' | 'createdAt'>) => void;
+  deleteCreativeEntry: (id: string) => void;
 
   // Auth
   setUser: (user: AppState['user']) => void;
@@ -154,6 +159,10 @@ export const useAppStore = create<AppState>()(
       currentAccountId: 'acc-1',
       roadmaps: SEED_ROADMAPS,
       copyBank: SEED_COPY,
+      creativeBank: [
+        { id: 'cr-1', title: 'UGC Testimonial — Sarah', url: 'https://picsum.photos/seed/gs1/600/750', format: 'ugc', tags: ['testimonial', '9:16'], createdAt: '2025-06-01T00:00:00Z' },
+        { id: 'cr-2', title: 'Product Hero — Serum Pro', url: 'https://picsum.photos/seed/gs2/600/600', format: 'static', tags: ['product', '1:1'], createdAt: '2025-06-03T00:00:00Z' },
+      ],
       user: { name: 'Alex Rivera', email: 'alex@growthsprint.io', team: 'GrowthSprint' },
       namingConvention: DEFAULT_NAMING_CONVENTION,
 
@@ -272,6 +281,17 @@ export const useAppStore = create<AppState>()(
             { ...entry, id: nanoid(), usageCount: 0, createdAt: new Date().toISOString() },
           ],
         })),
+
+      addCreativeEntry: (entry) =>
+        set((s) => ({
+          creativeBank: [
+            ...(s.creativeBank || []),
+            { ...entry, id: nanoid(), createdAt: new Date().toISOString() },
+          ],
+        })),
+
+      deleteCreativeEntry: (id) =>
+        set((s) => ({ creativeBank: (s.creativeBank || []).filter((c) => c.id !== id) })),
 
       setUser: (user) => set({ user }),
       logout: () => set({ user: null }),

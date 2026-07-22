@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Map, Type, Settings,
   Zap, ChevronRight, Users, ChevronDown,
-  Check, Plus, Building2
+  Check, Plus, Building2, Clapperboard
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useState } from 'react';
@@ -15,6 +15,7 @@ const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/roadmaps', label: 'Roadmaps', icon: Map },
   { href: '/copy-bank', label: 'Copy Bank', icon: Type },
+  { href: '/creative-bank', label: 'Creative Bank', icon: Clapperboard },
   { href: '/team', label: 'Team', icon: Users },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];

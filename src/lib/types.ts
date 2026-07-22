@@ -85,6 +85,15 @@ export interface CopyBankEntry {
   createdAt: string;
 }
 
+export interface CreativeBankEntry {
+  id: string;
+  title: string;
+  url: string; // external link — Drive, Frame.io, CDN, direct image URL. Never hosted here.
+  format: AdFormat;
+  tags: string[];
+  createdAt: string;
+}
+
 export interface TeamMember {
   id: string;
   email: string;
