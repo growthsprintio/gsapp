@@ -169,15 +169,19 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-2">
                 {dueNext.map((item) => (
-                  <div key={item.id} className="bg-card border border-border rounded-lg px-3 py-2.5">
-                    <p className="text-xs font-medium truncate">{item.concept || item.adName || 'Untitled'}</p>
+                  <Link key={item.id} href={`/roadmaps/${item.roadmapId}`}
+                    className="block bg-card border border-border rounded-lg px-3 py-2.5 hover:border-primary/40 transition-colors group">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium truncate">{item.concept || item.adName || 'Untitled'}</p>
+                      <ArrowRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                    </div>
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded', STATUS_CONFIG[item.status].bg, STATUS_CONFIG[item.status].color)}>
                         {STATUS_CONFIG[item.status].label}
                       </span>
                       <span className="text-[11px] text-muted-foreground">Due {format(new Date(item.dueDate!), 'MMM d')}</span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -191,7 +195,8 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-2">
                 {recentlyLaunched.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 bg-card border border-border rounded-lg p-2">
+                  <Link key={item.id} href={`/roadmaps/${item.roadmapId}`}
+                    className="flex items-center gap-3 bg-card border border-border rounded-lg p-2 hover:border-primary/40 transition-colors group">
                     <div className="w-11 h-11 rounded-md bg-secondary border border-border flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {item.creativeLink ? (
                         <img src={item.creativeLink} alt="" className="w-full h-full object-cover" />
@@ -206,7 +211,8 @@ export default function DashboardPage() {
                         {item.metaAdId && <span className="text-primary font-medium"> · Meta</span>}
                       </p>
                     </div>
-                  </div>
+                    <ArrowRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mr-1" />
+                  </Link>
                 ))}
               </div>
             )}
