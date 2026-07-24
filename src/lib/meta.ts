@@ -16,12 +16,25 @@ export interface MetaConfig {
   version: string;
 }
 
+/**
+ * Env values often arrive with stray whitespace, wrapping quotes, or a copied
+ * "Bearer " prefix. Normalise those so a paste slip doesn't look like an auth failure.
+ */
+function cleanEnv(v?: string): string | undefined {
+  if (!v) return undefined;
+  let s = v.trim().replace(/^Bearer\s+/i, '');
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim();
+  }
+  s = s.replace(/\s+/g, ''); // tokens/IDs never contain whitespace
+  if (!s || s.includes('PASTE_')) return undefined;
+  return s;
+}
+
 export function getMetaConfig(): MetaConfig | null {
-  // Treat unset OR template-placeholder values (from .env.example / scaffold) as not configured.
-  const clean = (v?: string) => (v && !v.includes('PASTE_') ? v : undefined);
-  const token = clean(process.env.META_ACCESS_TOKEN);
-  const adAccountId = clean(process.env.META_AD_ACCOUNT_ID);
-  const pageId = clean(process.env.META_PAGE_ID);
+  const token = cleanEnv(process.env.META_ACCESS_TOKEN);
+  const adAccountId = cleanEnv(process.env.META_AD_ACCOUNT_ID);
+  const pageId = cleanEnv(process.env.META_PAGE_ID);
   if (!token || !adAccountId || !pageId) return null;
   return {
     token,
@@ -151,7 +164,18 @@ export async function verifyConnection(cfg: MetaConfig): Promise<MetaCheck[]> {
     const me = await metaGet(cfg, 'me', { fields: 'id,name' });
     checks.push({ label: 'Access token', ok: true, detail: me.name ? `Authenticated as ${me.name}` : 'Token is valid' });
   } catch (e) {
-    checks.push({ label: 'Access token', ok: false, detail: e instanceof Error ? e.message : 'Invalid token' });
+    // Describe the SHAPE of the token (never the token) so paste errors are diagnosable.
+    const t = cfg.token;
+    const shape = `length ${t.length}, starts "${t.slice(0, 4)}"`;
+    const hints: string[] = [];
+    if (!t.startsWith('EAA')) hints.push('Meta tokens normally start with "EAA" — this may be an App ID/Secret rather than an access token');
+    if (t.length < 100) hints.push('this looks too short — the copy was probably truncated');
+    const why = e instanceof Error ? e.message : 'Invalid token';
+    checks.push({
+      label: 'Access token',
+      ok: false,
+      detail: `${why} — ${shape}${hints.length ? '. ' + hints.join('; ') : ''}`,
+    });
     return checks; // nothing else can succeed
   }
 
