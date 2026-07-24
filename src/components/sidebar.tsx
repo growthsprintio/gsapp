@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Map, Type, Settings,
   Zap, ChevronRight, Users, ChevronDown,
-  Check, Plus, Building2, Clapperboard
+  Check, Plus, Building2, Clapperboard, LogOut
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useState } from 'react';
@@ -194,6 +194,15 @@ export function Sidebar() {
               <p className="text-xs font-medium truncate">{user.name}</p>
               <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
             </div>
+            <button
+              onClick={async () => {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+              }}
+              title="Log out"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
