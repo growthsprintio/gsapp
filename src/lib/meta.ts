@@ -134,6 +134,68 @@ export async function launchToMeta(cfg: MetaConfig, p: LaunchPayload): Promise<L
   return { creativeId: creative.id, adId: ad.id };
 }
 
+// ── connection diagnostics ────────────────────────────────────────────────────
+
+export interface MetaCheck {
+  label: string;
+  ok: boolean;
+  detail: string;
+}
+
+/** Verifies each link in the chain so setup problems are obvious before a push. */
+export async function verifyConnection(cfg: MetaConfig): Promise<MetaCheck[]> {
+  const checks: MetaCheck[] = [];
+
+  // 1. Token valid?
+  try {
+    const me = await metaGet(cfg, 'me', { fields: 'id,name' });
+    checks.push({ label: 'Access token', ok: true, detail: me.name ? `Authenticated as ${me.name}` : 'Token is valid' });
+  } catch (e) {
+    checks.push({ label: 'Access token', ok: false, detail: e instanceof Error ? e.message : 'Invalid token' });
+    return checks; // nothing else can succeed
+  }
+
+  // 2. Ad account reachable?
+  try {
+    const acct = await metaGet(cfg, cfg.adAccountId, { fields: 'name,account_status,currency' });
+    const active = acct.account_status === 1;
+    checks.push({
+      label: 'Ad account',
+      ok: active,
+      detail: active
+        ? `${acct.name} (${acct.currency})`
+        : `${acct.name} — account status ${acct.account_status} (not active; check billing)`,
+    });
+  } catch (e) {
+    checks.push({ label: 'Ad account', ok: false, detail: e instanceof Error ? e.message : 'Not reachable' });
+  }
+
+  // 3. Page reachable?
+  try {
+    const page = await metaGet(cfg, cfg.pageId, { fields: 'name' });
+    checks.push({ label: 'Facebook Page', ok: true, detail: page.name || cfg.pageId });
+  } catch (e) {
+    checks.push({ label: 'Facebook Page', ok: false, detail: e instanceof Error ? e.message : 'Not reachable' });
+  }
+
+  // 4. Campaigns / ad sets available to launch into?
+  try {
+    const adsets = await listAdSets(cfg);
+    const campaigns = new Set(adsets.map((a) => a.campaignId)).size;
+    checks.push({
+      label: 'Campaigns & ad sets',
+      ok: adsets.length > 0,
+      detail: adsets.length > 0
+        ? `${campaigns} campaign${campaigns !== 1 ? 's' : ''}, ${adsets.length} ad set${adsets.length !== 1 ? 's' : ''}`
+        : 'None found — create a campaign and ad set in Ads Manager first',
+    });
+  } catch (e) {
+    checks.push({ label: 'Campaigns & ad sets', ok: false, detail: e instanceof Error ? e.message : 'Could not list' });
+  }
+
+  return checks;
+}
+
 // ── ad insights (reporting) ───────────────────────────────────────────────────
 
 export interface AdInsights {

@@ -22,6 +22,11 @@ export async function proxy(req: NextRequest) {
 
   if (req.cookies.get(COOKIE)?.value === token) return NextResponse.next();
 
+  // API routes stay protected, but answer with JSON instead of an HTML redirect.
+  if (req.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const url = req.nextUrl.clone();
   url.pathname = '/login';
   url.searchParams.set('from', req.nextUrl.pathname + req.nextUrl.search);
