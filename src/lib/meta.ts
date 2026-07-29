@@ -177,6 +177,36 @@ export async function launchToMeta(cfg: MetaConfig, p: LaunchPayload): Promise<L
   return { creativeId: creative.id, adId: ad.id };
 }
 
+// ── assets available to a connected token (for the picker) ────────────────────
+
+export interface MetaAssets {
+  adAccounts: { id: string; name: string; currency: string; status: number }[];
+  pages: { id: string; name: string }[];
+}
+
+/** Lists the ad accounts and Pages the OAuth-connected user can advertise with. */
+export async function listAssets(token: string, version = process.env.META_API_VERSION || 'v23.0'): Promise<MetaAssets> {
+  const call = async (path: string, fields: string) => {
+    const res = await fetch(`https://graph.facebook.com/${version}/${path}?` +
+      new URLSearchParams({ fields, limit: '200', access_token: token }));
+    const json = await res.json();
+    if (json.error) throw new Error(json.error.message);
+    return json.data || [];
+  };
+
+  const [accounts, pages] = await Promise.all([
+    call('me/adaccounts', 'id,name,currency,account_status'),
+    call('me/accounts', 'id,name'),
+  ]);
+
+  return {
+    adAccounts: accounts.map((a: any) => ({
+      id: a.id, name: a.name || a.id, currency: a.currency || '', status: a.account_status ?? 0,
+    })),
+    pages: pages.map((p: any) => ({ id: p.id, name: p.name || p.id })),
+  };
+}
+
 // ── connection diagnostics ────────────────────────────────────────────────────
 
 export interface MetaCheck {
