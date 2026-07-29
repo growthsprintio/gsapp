@@ -45,6 +45,36 @@ export function getMetaConfig(): MetaConfig | null {
   };
 }
 
+/**
+ * Per-workspace credentials from the database (multi-tenant path).
+ * Falls back to env vars when a workspace has no connection yet, so the
+ * single-account setup keeps working during the transition.
+ */
+export async function getMetaConfigForWorkspace(workspaceId?: string): Promise<MetaConfig | null> {
+  if (workspaceId) {
+    const { createSupabaseAdmin } = await import('./supabase');
+    const admin = createSupabaseAdmin();
+    if (admin) {
+      const { data } = await admin
+        .from('meta_connections')
+        .select('access_token, ad_account_id, page_id, instagram_id')
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+
+      if (data?.access_token && data.ad_account_id && data.page_id) {
+        return {
+          token: data.access_token,
+          adAccountId: data.ad_account_id.startsWith('act_') ? data.ad_account_id : `act_${data.ad_account_id}`,
+          pageId: data.page_id,
+          instagramId: data.instagram_id || undefined,
+          version: process.env.META_API_VERSION || 'v23.0',
+        };
+      }
+    }
+  }
+  return getMetaConfig(); // env fallback
+}
+
 const graph = (cfg: MetaConfig, path: string) =>
   `https://graph.facebook.com/${cfg.version}/${path}`;
 
