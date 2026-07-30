@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Save, Building2, Palette, Zap, Bell, Tag, Plus, Trash2, GripVertical, Wand2, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MetaConnectionCard } from '@/components/meta-connection-card';
 import { applyNamingConvention, DEFAULT_NAMING_CONVENTION } from '@/lib/utils';
 import type { NamingConvention, NamingVariable } from '@/lib/types';
 
@@ -447,83 +448,6 @@ function NamingConventionBuilder() {
           {saved ? 'Saved!' : 'Save Convention'}
         </button>
       </div>
-    </div>
-  );
-}
-
-function MetaConnectionCard() {
-  const [state, setState] = useState<'idle' | 'checking' | 'done'>('idle');
-  const [result, setResult] = useState<{
-    configured: boolean; ok?: boolean; adAccountId?: string; hint?: string; error?: string;
-    checks: { label: string; ok: boolean; detail: string }[];
-  } | null>(null);
-
-  const runCheck = () => {
-    setState('checking');
-    fetch('/api/meta/verify')
-      .then((r) => r.json())
-      .then((d) => { setResult(d); setState('done'); })
-      .catch(() => { setResult({ configured: false, checks: [], error: 'Could not reach the server.' }); setState('done'); });
-  };
-
-  useEffect(() => { runCheck(); }, []);
-
-  const connected = result?.configured && result?.ok;
-
-  return (
-    <div className="bg-card border border-border rounded-xl p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center text-lg">⚡</div>
-          <div>
-            <p className="text-sm font-medium">Meta Ads Manager</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {result?.configured
-                ? `Pushing to ${result.adAccountId}`
-                : 'Push approved creative into existing campaigns'}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={cn('text-xs font-medium px-3 py-1.5 rounded-lg border',
-            connected
-              ? 'border-primary/20 bg-primary/5 text-primary'
-              : 'border-border bg-secondary text-muted-foreground')}>
-            {state === 'checking' ? 'Checking…' : connected ? 'Connected' : 'Not connected'}
-          </span>
-          <button onClick={runCheck} disabled={state === 'checking'}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-border hover:bg-secondary transition-colors disabled:opacity-50">
-            Test
-          </button>
-        </div>
-      </div>
-
-      {/* Diagnostics */}
-      {state === 'done' && (
-        <div className="mt-4 pt-4 border-t border-border">
-          {!result?.configured ? (
-            <p className="text-xs text-muted-foreground">
-              {result?.hint || 'Meta credentials are not configured.'}
-            </p>
-          ) : result?.error ? (
-            <p className="text-xs text-red-600">{result.error}</p>
-          ) : (
-            <div className="space-y-1.5">
-              {result?.checks.map((c) => (
-                <div key={c.label} className="flex items-start gap-2">
-                  {c.ok
-                    ? <Check className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
-                    : <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />}
-                  <p className="text-[11px]">
-                    <span className="font-medium">{c.label}:</span>{' '}
-                    <span className={c.ok ? 'text-muted-foreground' : 'text-red-600'}>{c.detail}</span>
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
