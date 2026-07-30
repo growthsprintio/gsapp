@@ -47,133 +47,16 @@ interface AppState {
   logout: () => void;
 }
 
-// Seed data — must be declared before useAppStore
-const SEED_ACCOUNTS: Account[] = [
-  { id: 'acc-1', name: 'Luminary Skincare', type: 'brand', industry: 'Beauty & Skincare', website: 'luminaryskin.com', createdAt: '2025-01-01T00:00:00Z' },
-  { id: 'acc-2', name: 'Acme Corp', type: 'agency', industry: 'E-commerce', website: 'acmecorp.com', createdAt: '2025-03-01T00:00:00Z' },
-];
-
-const SEED_ROADMAPS: Roadmap[] = [
-  {
-    id: 'rm-1',
-    accountId: 'acc-1',
-    name: 'June 2025 — Performance',
-    type: 'monthly',
-    status: 'active',
-    period: 'June 2025',
-    description: 'Core performance creative for the June push across all DTC brands.',
-    createdAt: '2025-06-01T00:00:00Z',
-    items: [
-      {
-        id: 'i-1', roadmapId: 'rm-1', status: 'ready_to_launch',
-        adName: 'SUM_UGC_9x16_Pain_001', adFormat: 'ugc', adSize: '9:16',
-        angle: 'Pain Point', concept: 'The problem with your current skincare',
-        primaryText: 'Stop wasting money on products that don\'t work. Here\'s what actually changed my skin.',
-        headline: 'Finally. Skincare that delivers.', landingPage: 'https://brand.com/shop',
-        product: 'Serum Pro', dueDate: '2025-06-15', createdAt: '2025-06-01T00:00:00Z', updatedAt: '2025-06-10T00:00:00Z',
-      },
-      {
-        id: 'i-2', roadmapId: 'rm-1', status: 'in_review',
-        adName: 'SUM_STA_1x1_Social_002', adFormat: 'static', adSize: '1:1',
-        angle: 'Social Proof', concept: '5-star review showcase',
-        primaryText: '"I\'ve tried everything. This is the only thing that worked." — Sarah M.',
-        headline: 'Join 50,000+ happy customers.', product: 'Serum Pro',
-        dueDate: '2025-06-18', createdAt: '2025-06-02T00:00:00Z', updatedAt: '2025-06-12T00:00:00Z',
-      },
-      {
-        id: 'i-3', roadmapId: 'rm-1', status: 'briefed',
-        adName: 'SUM_VID_4x5_Unbox_003', adFormat: 'video', adSize: '4:5',
-        angle: 'Curiosity', concept: 'Unboxing + first impression reaction',
-        dueDate: '2025-06-22', createdAt: '2025-06-05T00:00:00Z', updatedAt: '2025-06-05T00:00:00Z',
-      },
-      {
-        id: 'i-4', roadmapId: 'rm-1', status: 'idea',
-        adName: '', adFormat: 'carousel',
-        angle: 'Before/After', concept: 'Before and after transformation carousel',
-        createdAt: '2025-06-08T00:00:00Z', updatedAt: '2025-06-08T00:00:00Z',
-      },
-      {
-        id: 'i-5', roadmapId: 'rm-1', status: 'launched',
-        adName: 'SUM_UGC_9x16_Hook_001', adFormat: 'ugc', adSize: '9:16',
-        angle: 'Hook', concept: 'Stop scrolling hook with product demo',
-        primaryText: 'POV: You finally found a skincare routine that actually works.',
-        headline: 'Real results. No filters.', product: 'Serum Pro',
-        launchedAt: '2025-06-05T00:00:00Z', metaAdId: 'act_123456789',
-        createdAt: '2025-05-28T00:00:00Z', updatedAt: '2025-06-05T00:00:00Z',
-      },
-    ],
-  },
-  {
-    id: 'rm-2',
-    accountId: 'acc-1',
-    name: 'Q3 2025 — Brand Campaign',
-    type: 'quarterly',
-    status: 'active',
-    period: 'Q3 2025',
-    description: 'Summer brand awareness push with influencer-led content.',
-    createdAt: '2025-06-01T00:00:00Z',
-    items: [
-      {
-        id: 'i-6', roadmapId: 'rm-2', status: 'idea',
-        adName: '', adFormat: 'video', angle: 'Lifestyle',
-        concept: 'Summer morning routine featuring hero product',
-        createdAt: '2025-06-10T00:00:00Z', updatedAt: '2025-06-10T00:00:00Z',
-      },
-    ],
-  },
-  {
-    id: 'rm-3',
-    accountId: 'acc-2',
-    name: 'Acme Corp — Sprint 4',
-    type: 'client',
-    status: 'active',
-    client: 'Acme Corp',
-    description: 'Agency sprint 4 for Acme Corp e-commerce.',
-    createdAt: '2025-06-01T00:00:00Z',
-    items: [],
-  },
-];
-
-const SEED_COPY: CopyBankEntry[] = [
-  {
-    id: 'c-1', type: 'primary_text',
-    content: 'Stop wasting money on products that don\'t work. Here\'s what actually changed everything.',
-    tags: ['pain point', 'skincare'], usageCount: 3, createdAt: '2025-06-01T00:00:00Z',
-  },
-  {
-    id: 'c-2', type: 'headline',
-    content: 'Finally. Results you can actually see.',
-    tags: ['social proof', 'results'], usageCount: 5, createdAt: '2025-06-01T00:00:00Z',
-  },
-  {
-    id: 'c-3', type: 'hook',
-    content: 'POV: You just found the product that changes your routine forever.',
-    tags: ['ugc', 'hook'], usageCount: 2, createdAt: '2025-06-02T00:00:00Z',
-  },
-  {
-    id: 'c-4', type: 'angle',
-    content: 'Before & After',
-    tags: ['transformation'], usageCount: 0, createdAt: '2025-06-02T00:00:00Z',
-  },
-  {
-    id: 'c-5', type: 'product',
-    content: 'Serum Pro',
-    tags: [], usageCount: 0, createdAt: '2025-06-02T00:00:00Z',
-  },
-];
-
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      accounts: SEED_ACCOUNTS,
-      currentAccountId: 'acc-1',
-      roadmaps: SEED_ROADMAPS,
-      copyBank: SEED_COPY,
-      creativeBank: [
-        { id: 'cr-1', title: 'UGC Testimonial — Sarah', url: 'https://picsum.photos/seed/gs1/600/750', format: 'ugc', tags: ['testimonial', '9:16'], createdAt: '2025-06-01T00:00:00Z' },
-        { id: 'cr-2', title: 'Product Hero — Serum Pro', url: 'https://picsum.photos/seed/gs2/600/600', format: 'static', tags: ['product', '1:1'], createdAt: '2025-06-03T00:00:00Z' },
-      ],
-      user: { name: 'Alex Rivera', email: 'alex@growthsprint.io', team: 'GrowthSprint' },
+      // Real users start empty — identity comes from Supabase, not a demo seed.
+      accounts: [],
+      currentAccountId: '',
+      roadmaps: [],
+      copyBank: [],
+      creativeBank: [],
+      user: null,
       namingConvention: DEFAULT_NAMING_CONVENTION,
 
       updateNamingConvention: (convention) => set({ namingConvention: convention }),
@@ -306,7 +189,20 @@ export const useAppStore = create<AppState>()(
       setUser: (user) => set({ user }),
       logout: () => set({ user: null }),
     }),
-    { name: 'growthsprint-store' }
+    {
+      name: 'growthsprint-store',
+      // Bump when the shape or seeding changes. v2 drops the demo seed data
+      // (Luminary Skincare / Acme Corp / sample roadmaps) that shipped in v1.
+      version: 2,
+      migrate: () => ({
+        accounts: [],
+        currentAccountId: '',
+        roadmaps: [],
+        copyBank: [],
+        creativeBank: [],
+        user: null,
+      }),
+    }
   )
 );
 
