@@ -22,14 +22,22 @@ const NAV = [
 ];
 
 function AccountSwitcher() {
-  const accounts = useAppStore((s) => s.accounts);
-  const currentAccountId = useAppStore((s) => s.currentAccountId);
-  const switchAccount = useAppStore((s) => s.switchAccount);
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  // Real Supabase workspaces — these are what Meta connections and team
+  // membership are scoped to.
+  const [workspaces, setWorkspaces] = useState<{ id: string; name: string; type: string }[]>([]);
 
-  const current = accounts.find((a) => a.id === currentAccountId);
-  const initials = current?.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() ?? '??';
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    fetch('/api/workspaces')
+      .then((r) => r.json())
+      .then((d) => setWorkspaces(d.workspaces || []))
+      .catch(() => {});
+  }, []);
+
+  const current = workspaces[0];
+  const initials = current?.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() ?? '··';
 
   return (
     <div className="relative px-3 py-3 border-b border-border">
@@ -41,7 +49,7 @@ function AccountSwitcher() {
           {initials}
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <p className="text-xs font-semibold truncate">{current?.name ?? 'No account'}</p>
+          <p className="text-xs font-semibold truncate">{current?.name ?? 'No workspace'}</p>
           <p className="text-[10px] text-muted-foreground capitalize">{current?.type}</p>
         </div>
         <ChevronDown className={cn('w-3.5 h-3.5 text-muted-foreground transition-transform', open && 'rotate-180')} />
@@ -55,24 +63,27 @@ function AccountSwitcher() {
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Workspaces</p>
             </div>
             <div className="py-1 max-h-56 overflow-y-auto">
-              {accounts.map((acct) => {
-                const acctInitials = acct.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
-                const active = acct.id === currentAccountId;
+              {workspaces.length === 0 && (
+                <p className="px-3 py-2.5 text-[11px] text-muted-foreground">No workspaces yet.</p>
+              )}
+              {workspaces.map((ws, i) => {
+                const wsInitials = ws.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+                const active = i === 0;
                 return (
                   <button
-                    key={acct.id}
-                    onClick={() => { switchAccount(acct.id); setOpen(false); router.push('/dashboard'); }}
+                    key={ws.id}
+                    onClick={() => { setOpen(false); router.push('/accounts'); }}
                     className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-muted transition-colors text-left"
                   >
                     <div className={cn(
                       'w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0',
                       active ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
                     )}>
-                      {acctInitials}
+                      {wsInitials}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{acct.name}</p>
-                      <p className="text-[10px] text-muted-foreground capitalize">{acct.type}</p>
+                      <p className="text-xs font-medium truncate">{ws.name}</p>
+                      <p className="text-[10px] text-muted-foreground capitalize">{ws.type}</p>
                     </div>
                     {active && <Check className="w-3 h-3 text-primary flex-shrink-0" />}
                   </button>

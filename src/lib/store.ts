@@ -1,7 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { createWorkspaceStorage } from './workspace-storage';
 import type { Account, Roadmap, RoadmapItem, CopyBankEntry, CreativeBankEntry, CreativeStatus, NamingConvention } from './types';
 import { nanoid, DEFAULT_NAMING_CONVENTION } from './utils';
 
@@ -202,6 +203,15 @@ export const useAppStore = create<AppState>()(
         creativeBank: [],
         user: null,
       }),
+      // Content lives on the server when Supabase is configured, so a
+      // workspace's roadmaps follow the user across devices and are visible to
+      // teammates. Falls back to localStorage otherwise.
+      storage: createJSONStorage(() => createWorkspaceStorage()),
+      // Never sync the local demo user — identity comes from the session.
+      partialize: (s) => {
+        const { user: _user, ...rest } = s;
+        return rest as typeof s;
+      },
     }
   )
 );
