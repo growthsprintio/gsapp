@@ -11,8 +11,11 @@ const LEGACY_COOKIE = 'gs_auth';
  *   3. Neither              → site open
  */
 export async function proxy(req: NextRequest) {
-  const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supaKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // These become HTTP headers — strip any non-Latin-1 characters (BOM, smart quotes)
+  // that would otherwise make fetch throw "non ISO-8859-1 code point".
+  const scrub = (v?: string) => v?.replace(/[^\x20-\x7E]/g, '').trim() || undefined;
+  const supaUrl = scrub(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const supaKey = scrub(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   const unauthorized = () => {
     if (req.nextUrl.pathname.startsWith('/api/')) {

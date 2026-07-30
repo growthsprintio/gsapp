@@ -4,8 +4,15 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+/** Strip non-Latin-1 characters — these values become HTTP headers. */
+function clean(v?: string): string | undefined {
+  if (!v) return undefined;
+  const s = v.replace(/[^\x20-\x7E]/g, '').trim().replace(/^["']|["']$/g, '');
+  return s || undefined;
+}
+
+const URL = clean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const ANON = clean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 export const supabaseConfigured = !!(URL && ANON);
 
