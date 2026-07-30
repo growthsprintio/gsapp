@@ -1,39 +1,62 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
-const COOKIE = 'gs_auth';
+const LEGACY_COOKIE = 'gs_auth';
 
 /**
- * Expected cookie value = SHA-256(password:secret).
- * Returns null when SITE_PASSWORD isn't set — auth stays OFF until you
- * configure it (so a fresh deploy is never locked out before the env var lands).
+ * Auth precedence:
+ *   1. Supabase configured  → real per-user sessions
+ *   2. SITE_PASSWORD set    → shared password gate (legacy fallback)
+ *   3. Neither              → site open
  */
-async function expectedToken(): Promise<string | null> {
-  const pw = process.env.SITE_PASSWORD;
-  if (!pw) return null;
-  const secret = process.env.AUTH_SECRET || 'growthsprint-default-secret';
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${pw}:${secret}`));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 export async function proxy(req: NextRequest) {
-  const token = await expectedToken();
-  if (!token) return NextResponse.next(); // not configured → site open
+  const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supaKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (req.cookies.get(COOKIE)?.value === token) return NextResponse.next();
+  const unauthorized = () => {
+    if (req.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('from', req.nextUrl.pathname + req.nextUrl.search);
+    return NextResponse.redirect(url);
+  };
 
-  // API routes stay protected, but answer with JSON instead of an HTML redirect.
-  if (req.nextUrl.pathname.startsWith('/api/')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // ── 1. Supabase session ────────────────────────────────────────────────────
+  if (supaUrl && supaKey) {
+    let res = NextResponse.next({ request: req });
+    const supabase = createServerClient(supaUrl, supaKey, {
+      cookies: {
+        getAll: () => req.cookies.getAll(),
+        setAll: (list) => {
+          list.forEach(({ name, value }) => req.cookies.set(name, value));
+          res = NextResponse.next({ request: req });
+          list.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
+        },
+      },
+    });
+
+    // getUser() revalidates the token with Supabase — don't trust the cookie alone.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return unauthorized();
+    return res; // carries refreshed session cookies
   }
 
-  const url = req.nextUrl.clone();
-  url.pathname = '/login';
-  url.searchParams.set('from', req.nextUrl.pathname + req.nextUrl.search);
-  return NextResponse.redirect(url);
+  // ── 2. Legacy shared-password gate ─────────────────────────────────────────
+  const pw = process.env.SITE_PASSWORD;
+  if (!pw) return NextResponse.next();
+
+  const secret = process.env.AUTH_SECRET || 'growthsprint-default-secret';
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${pw}:${secret}`));
+  const expected = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  if (req.cookies.get(LEGACY_COOKIE)?.value === expected) return NextResponse.next();
+
+  return unauthorized();
 }
 
-// Protect everything except the login page, the auth endpoints, and static assets.
+// Public: login, signup, auth endpoints, static assets.
 export const config = {
-  matcher: ['/((?!login|api/auth|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!login|signup|auth/callback|api/auth|_next/static|_next/image|favicon.ico).*)'],
 };

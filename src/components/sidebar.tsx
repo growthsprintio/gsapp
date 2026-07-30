@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useState } from 'react';
+import { createSupabaseBrowser, supabaseConfigured } from '@/lib/supabase';
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -196,6 +197,9 @@ export function Sidebar() {
             </div>
             <button
               onClick={async () => {
+                if (supabaseConfigured) {
+                  try { await createSupabaseBrowser().auth.signOut(); } catch { /* fall through */ }
+                }
                 await fetch('/api/auth/logout', { method: 'POST' });
                 window.location.href = '/login';
               }}

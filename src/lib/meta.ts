@@ -52,7 +52,7 @@ export function getMetaConfig(): MetaConfig | null {
  */
 export async function getMetaConfigForWorkspace(workspaceId?: string): Promise<MetaConfig | null> {
   if (workspaceId) {
-    const { createSupabaseAdmin } = await import('./supabase');
+    const { createSupabaseAdmin } = await import('./supabase-server');
     const admin = createSupabaseAdmin();
     if (admin) {
       const { data } = await admin
