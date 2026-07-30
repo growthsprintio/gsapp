@@ -9,7 +9,7 @@ import {
   Check, Plus, Building2, Clapperboard, LogOut
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createSupabaseBrowser, supabaseConfigured } from '@/lib/supabase';
 
 const NAV = [
@@ -110,7 +110,22 @@ function AccountSwitcher() {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const user = useAppStore((s) => s.user);
+  const storeUser = useAppStore((s) => s.user);
+  // Real signed-in identity wins over the local demo user.
+  const [authUser, setAuthUser] = useState<{ email: string; workspace?: string } | null>(null);
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    fetch('/api/auth/bootstrap')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.user?.email) setAuthUser({ email: d.user.email, workspace: d.workspaces?.[0]?.name });
+      })
+      .catch(() => {});
+  }, []);
+
+  const user = authUser
+    ? { name: authUser.email.split('@')[0], email: authUser.email }
+    : storeUser;
   const roadmaps = useAppStore((s) => s.roadmaps);
   const currentAccountId = useAppStore((s) => s.currentAccountId);
   const [roadmapsOpen, setRoadmapsOpen] = useState(true);
