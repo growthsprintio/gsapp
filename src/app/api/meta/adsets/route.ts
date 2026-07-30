@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getMetaConfig, listAdSets } from '@/lib/meta';
+import { getSessionMetaConfig } from '@/lib/meta-session';
+import { listAdSets } from '@/lib/meta';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // GET /api/meta/adsets — existing campaigns + ad sets for the launch selector.
 export async function GET() {
-  const cfg = getMetaConfig();
+  const cfg = await getSessionMetaConfig();
   if (!cfg) return NextResponse.json({ configured: false, adsets: [] });
 
   try {

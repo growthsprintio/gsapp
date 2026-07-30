@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getMetaConfig, launchToMeta, type LaunchPayload } from '@/lib/meta';
+import { getSessionMetaConfig } from '@/lib/meta-session';
+import { launchToMeta, type LaunchPayload } from '@/lib/meta';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  const cfg = getMetaConfig();
+  const cfg = await getSessionMetaConfig();
   if (!cfg) {
     return NextResponse.json(
-      { error: 'Meta is not connected. Set META_ACCESS_TOKEN, META_AD_ACCOUNT_ID and META_PAGE_ID in your environment variables.' },
+      { error: 'Meta is not connected for this workspace. Go to Settings → Integrations and connect Meta, then pick an ad account and Page.' },
       { status: 400 },
     );
   }

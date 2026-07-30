@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getMetaConfig, getAdInsights } from '@/lib/meta';
+import { getSessionMetaConfig } from '@/lib/meta-session';
+import { getAdInsights } from '@/lib/meta';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,7 +12,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'adId is required' }, { status: 400 });
   }
 
-  const cfg = getMetaConfig();
+  const cfg = await getSessionMetaConfig();
   if (!cfg) {
     return NextResponse.json({ configured: false, insights: null });
   }

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getMetaConfig } from '@/lib/meta';
+import { getSessionMetaConfig } from '@/lib/meta-session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Lightweight check so the UI can show "Meta connected" without exposing secrets.
 export async function GET() {
-  const cfg = getMetaConfig();
+  const cfg = await getSessionMetaConfig();
   return NextResponse.json({
     configured: !!cfg,
     adAccountId: cfg?.adAccountId ?? null,
