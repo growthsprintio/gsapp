@@ -11,7 +11,8 @@ function LoginForm() {
   const params = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  // Surface errors handed back by /auth/callback (expired link, etc.)
+  const [error, setError] = useState(params.get('error') || '');
   const [loading, setLoading] = useState(false);
 
   const dest = () => {

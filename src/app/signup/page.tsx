@@ -26,6 +26,8 @@ export default function SignupPage() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
+        // Confirmation links must come back to this app, not Supabase's default.
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard` },
       });
       if (signUpError) throw new Error(signUpError.message);
 
