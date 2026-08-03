@@ -135,9 +135,22 @@ export interface LaunchPayload {
   headline?: string;
   adDescription?: string;
   landingPage?: string;
-  creativeLink?: string; // public image URL (option A)
+  /**
+   * Public image URL(s). A single URL makes a normal link ad; two or more
+   * (newline or comma separated) make a carousel.
+   */
+  creativeLink?: string;
+  adFormat?: string;
   metaCTA?: string;
   metaAdSetId?: string; // REQUIRED — the existing ad set to launch into
+}
+
+/** Split a creative field into individual asset URLs. */
+export function parseAssetUrls(raw?: string): string[] {
+  return (raw || '')
+    .split(/[\n,]+/)
+    .map((s) => s.trim())
+    .filter((s) => /^https?:\/\//i.test(s));
 }
 
 export interface LaunchResult {
@@ -148,14 +161,40 @@ export interface LaunchResult {
 export async function launchToMeta(cfg: MetaConfig, p: LaunchPayload): Promise<LaunchResult> {
   if (!p.metaAdSetId) throw new Error('No ad set selected.');
 
-  // 1. Ad Creative (image ad via public URL — option A)
+  // 1. Ad Creative. One asset → a link ad; several → a carousel, which Meta
+  //    expects as child_attachments (2–10 cards) rather than a single picture.
+  const assets = parseAssetUrls(p.creativeLink);
+  if (assets.length === 0) throw new Error('No creative asset URL provided.');
+
+  const isCarousel = assets.length > 1 || p.adFormat === 'carousel';
+  if (isCarousel && assets.length < 2) {
+    throw new Error('A carousel needs at least 2 image URLs — add more, one per line.');
+  }
+  if (assets.length > 10) {
+    throw new Error('Meta allows at most 10 carousel cards.');
+  }
+
   const linkData: Record<string, unknown> = {
     link: p.landingPage,
     message: p.primaryText,
-    name: p.headline,
-    description: p.adDescription,
-    picture: p.creativeLink,
   };
+
+  if (isCarousel) {
+    linkData.child_attachments = assets.slice(0, 10).map((picture) => ({
+      link: p.landingPage,
+      picture,
+      name: p.headline,
+      description: p.adDescription,
+      ...(p.metaCTA ? { call_to_action: { type: p.metaCTA, value: { link: p.landingPage } } } : {}),
+    }));
+    // Keeps Meta from appending an auto-generated end card.
+    linkData.multi_share_end_card = false;
+  } else {
+    linkData.name = p.headline;
+    linkData.description = p.adDescription;
+    linkData.picture = assets[0];
+  }
+
   if (p.metaCTA) linkData.call_to_action = { type: p.metaCTA, value: { link: p.landingPage } };
 
   const storySpec: Record<string, unknown> = { page_id: cfg.pageId, link_data: linkData };

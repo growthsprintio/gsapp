@@ -288,6 +288,14 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, nameEdited, form.adFormat, form.adSize, form.angle, form.concept, form.product, customValues]);
 
+  // Creative assets: one URL for a normal ad, 2–10 lines for a carousel.
+  const assetUrls = (form.creativeLink || '')
+    .split(/[\n,]+/).map((s) => s.trim()).filter((s) => /^https?:\/\//i.test(s));
+  const assetCount = assetUrls.length;
+  const creativeReady = form.adFormat === 'carousel'
+    ? assetCount >= 2 && assetCount <= 10
+    : assetCount >= 1;
+
   // Ad sizes are multi-select, stored comma-joined
   const selectedSizes = form.adSize ? form.adSize.split(',').map((s) => s.trim()).filter(Boolean) : [];
   const toggleSize = (size: string) => {
@@ -304,7 +312,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     { label: 'Campaign & ad set selected', ok: !!form.metaAdSetId },
     { label: 'Primary text + headline', ok: !!form.primaryText && !!form.headline },
     { label: 'Landing page + CTA', ok: !!form.landingPage && !!form.metaCTA },
-    { label: 'Creative asset', ok: !!form.creativeLink },
+    { label: form.adFormat === 'carousel' ? 'Carousel cards (2-10)' : 'Creative asset', ok: creativeReady },
   ];
   const launchReady = readiness.every((r) => r.ok);
 
@@ -325,6 +333,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
           adDescription: form.adDescription,
           landingPage: form.landingPage,
           creativeLink: form.creativeLink,
+          adFormat: form.adFormat,
           metaCTA: form.metaCTA,
           metaAdSetId: form.metaAdSetId,
         }),
@@ -532,11 +541,31 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium block mb-1.5">Creative Link</label>
-                    <input value={form.creativeLink} onChange={(e) => set('creativeLink', e.target.value)}
-                      placeholder="Drive / Dropbox..."
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
+                    <label className="text-xs font-medium block mb-1.5">
+                      Creative Link
+                      {form.adFormat === 'carousel' && (
+                        <span className="text-muted-foreground font-normal"> (one per line)</span>
+                      )}
+                    </label>
+                    {form.adFormat === 'carousel' ? (
+                      <textarea value={form.creativeLink} onChange={(e) => set('creativeLink', e.target.value)}
+                        rows={3}
+                        placeholder={'https://…/card-1.jpg\nhttps://…/card-2.jpg'}
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none font-mono text-xs"
+                      />
+                    ) : (
+                      <input value={form.creativeLink} onChange={(e) => set('creativeLink', e.target.value)}
+                        placeholder="Drive / Dropbox..."
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    )}
+                    {form.adFormat === 'carousel' && (
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {assetCount === 0
+                          ? 'Add 2–10 public image URLs, one per line.'
+                          : `${assetCount} card${assetCount !== 1 ? 's' : ''}${assetCount < 2 ? ' — a carousel needs at least 2' : ''}`}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs font-medium block mb-1.5">Frame.io Link</label>
