@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 import type { Roadmap } from '@/lib/types';
@@ -8,14 +8,30 @@ import { X } from 'lucide-react';
 
 interface Props { open: boolean; onClose: () => void; }
 
-const TYPES: Array<{ value: Roadmap['type']; label: string; desc: string }> = [
+// "Client" only makes sense for agency workspaces — a DTC brand should give each
+// client its own workspace rather than a roadmap type.
+const BASE_TYPES: Array<{ value: Roadmap['type']; label: string; desc: string }> = [
   { value: 'monthly', label: 'Monthly', desc: 'Organized by month' },
   { value: 'quarterly', label: 'Quarterly', desc: 'Quarterly push' },
   { value: 'product', label: 'Product', desc: 'Product-line focused' },
-  { value: 'client', label: 'Client', desc: 'Agency client sprint' },
+  { value: 'campaign', label: 'Other', desc: 'Anything else' },
 ];
 
+const AGENCY_TYPE: { value: Roadmap['type']; label: string; desc: string } =
+  { value: 'client', label: 'Client', desc: 'Agency client sprint' };
+
 export function NewRoadmapDialog({ open, onClose }: Props) {
+  // Agency workspaces additionally get the "Client" roadmap type.
+  const [isAgency, setIsAgency] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    fetch('/api/workspaces')
+      .then((r) => r.json())
+      .then((d) => setIsAgency(d.workspaces?.[0]?.type === 'agency'))
+      .catch(() => setIsAgency(false));
+  }, [open]);
+  const TYPES = isAgency ? [...BASE_TYPES, AGENCY_TYPE] : BASE_TYPES;
+
   const addRoadmap = useAppStore((s) => s.addRoadmap);
   const router = useRouter();
   const [form, setForm] = useState({ name: '', type: 'monthly' as Roadmap['type'], client: '', description: '', period: '' });
@@ -75,7 +91,7 @@ export function NewRoadmapDialog({ open, onClose }: Props) {
           )}
 
           <div>
-            <label className="text-xs font-medium block mb-1.5">Period / Label</label>
+            <label className="text-xs font-medium block mb-1.5">Period / Label <span className="text-muted-foreground font-normal">(optional)</span></label>
             <input value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })}
               placeholder="e.g. June 2025, Q3, Sprint 4"
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"

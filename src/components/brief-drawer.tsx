@@ -404,7 +404,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
                 {/* Description */}
                 <div>
-                  <label className="text-xs font-medium block mb-1.5">Description / Direction</label>
+                  <label className="text-xs font-medium block mb-1.5">Creative Direction</label>
                   <textarea value={form.description} onChange={(e) => set('description', e.target.value)}
                     placeholder="Detailed creative direction, references, notes..."
                     rows={3}

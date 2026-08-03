@@ -96,7 +96,7 @@ export default function CopyBankPage() {
   const addCopyEntry = useAppStore((s) => s.addCopyEntry);
   const [showNew, setShowNew] = useState(false);
   const [filter, setFilter] = useState<CopyBankEntry['type'] | 'all'>('all');
-  const [view, setView] = useState<'tiles' | 'rows'>('tiles');
+  const [view, setView] = useState<'tiles' | 'rows'>('rows');
   const [form, setForm] = useState({ type: 'primary_text' as CopyBankEntry['type'], content: '', tags: '' });
 
   const filtered = filter === 'all' ? copyBank : copyBank.filter((e) => e.type === filter);

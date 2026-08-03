@@ -107,7 +107,7 @@ export default function CreativeBankPage() {
   const addCreativeEntry = useAppStore((s) => s.addCreativeEntry);
   const [showNew, setShowNew] = useState(false);
   const [filter, setFilter] = useState<AdFormat | 'all'>('all');
-  const [view, setView] = useState<'tiles' | 'rows'>('tiles');
+  const [view, setView] = useState<'tiles' | 'rows'>('rows');
   const [form, setForm] = useState({ title: '', url: '', format: 'static' as AdFormat, tags: '' });
 
   const filtered = filter === 'all' ? creativeBank : creativeBank.filter((e) => e.format === filter);
