@@ -122,6 +122,46 @@ function TagMultiSelect({ selected, onChange, options, placeholder, onCreate }: 
   );
 }
 
+/** Small "Use from bank" dropdown that drops a saved entry into a copy field. */
+function CopyBankPicker({ entries, onPick }: {
+  entries: { id: string; content: string; url?: string; tags: string[] }[];
+  onPick: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setOpen(!open)}
+        className="flex items-center gap-1 text-[11px] text-primary hover:underline">
+        Use from bank <ChevronDown className={cn('w-3 h-3 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-50 w-72 bg-card border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto py-1">
+            {entries.map((e) => (
+              <button key={e.id} type="button"
+                onClick={() => { onPick(e.url || e.content); setOpen(false); }}
+                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors">
+                <p className="text-xs line-clamp-2">{e.content}</p>
+                {e.url && <p className="text-[10px] text-primary truncate">{e.url}</p>}
+                {e.tags.length > 0 && (
+                  <div className="flex gap-1 mt-1 flex-wrap">
+                    {e.tags.slice(0, 3).map((t) => (
+                      <span key={t} className="text-[9px] text-muted-foreground border border-border rounded-full px-1.5">{t}</span>
+                    ))}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -133,6 +173,7 @@ const EMPTY = {
   adName: '', adFormat: 'static' as AdFormat, adSize: '1:1', angle: '', concept: '',
   description: '', primaryText: '', headline: '', adDescription: '',
   inspirationLink: '', creativeLink: '', frameioLink: '', landingPage: '',
+  referenceCreative: '', finalDeliverable: '',
   product: '', dueDate: '', adLength: '',
   // Meta launch config — ads launch into EXISTING campaigns/ad sets
   metaCampaignId: '', metaAdSetId: '', metaCTA: '',
@@ -148,6 +189,11 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const addCopyEntry = useAppStore((s) => s.addCopyEntry);
   const bankAngles = copyBank.filter((c) => c.type === 'angle').map((c) => c.content);
   const bankProducts = copyBank.filter((c) => c.type === 'product').map((c) => c.content);
+  // Saved copy the Ad Copy tab can pull from.
+  const bankPrimary = copyBank.filter((c) => c.type === 'primary_text' || c.type === 'hook');
+  const bankHeadlines = copyBank.filter((c) => c.type === 'headline');
+  const bankDescriptions = copyBank.filter((c) => c.type === 'description');
+  const bankLandingPages = copyBank.filter((c) => c.type === 'landing_page');
   const [form, setForm] = useState<typeof EMPTY>({ ...EMPTY });
   const [tab, setTab] = useState<'brief' | 'copy' | 'launch'>('brief');
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
@@ -158,6 +204,9 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const [adSetsLoading, setAdSetsLoading] = useState(false);
   const [launchState, setLaunchState] = useState<'idle' | 'launching' | 'done' | 'error'>('idle');
   const [launchError, setLaunchError] = useState('');
+  // Once the user types their own ad name we stop auto-generating it.
+  const [nameEdited, setNameEdited] = useState(false);
+  const [nameIndex, setNameIndex] = useState(1);
 
   useEffect(() => {
     if (open && tab === 'launch' && metaConfigured === null) {
@@ -195,6 +244,8 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
         inspirationLink: editItem.inspirationLink || '',
         creativeLink: editItem.creativeLink || '',
         frameioLink: editItem.frameioLink || '',
+        referenceCreative: editItem.referenceCreative || '',
+        finalDeliverable: editItem.finalDeliverable || '',
         landingPage: editItem.landingPage || '',
         product: editItem.product || '',
         dueDate: editItem.dueDate || '',
@@ -207,6 +258,8 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
       setForm({ ...EMPTY });
     }
     setTab('brief');
+    setNameEdited(!!editItem?.adName);
+    setNameIndex(Math.floor(Math.random() * 99) + 1);
   }, [editItem, open]);
 
   if (!open) return null;
@@ -215,14 +268,25 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
   const setCustom = (key: string, val: string) => setCustomValues((cv) => ({ ...cv, [key]: val }));
 
+  const buildName = (source: typeof form) => applyNamingConvention(namingConvention, source, {
+    brand: currentAccount?.name?.slice(0, 3) || 'BRD',
+    index: nameIndex,
+    customValues,
+  });
+
   const generateName = () => {
-    const name = applyNamingConvention(namingConvention, form, {
-      brand: currentAccount?.name?.slice(0, 3) || 'BRD',
-      index: Math.floor(Math.random() * 99) + 1,
-      customValues,
-    });
-    set('adName', name);
+    setNameEdited(false);
+    set('adName', buildName(form));
   };
+
+  // Build the ad name progressively as the brief is filled in, unless the user
+  // has typed their own name — then we leave it alone.
+  useEffect(() => {
+    if (!open || nameEdited) return;
+    const next = buildName(form);
+    if (next && next !== form.adName) setForm((f) => ({ ...f, adName: next }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, nameEdited, form.adFormat, form.adSize, form.angle, form.concept, form.product, customValues]);
 
   // Ad sizes are multi-select, stored comma-joined
   const selectedSizes = form.adSize ? form.adSize.split(',').map((s) => s.trim()).filter(Boolean) : [];
@@ -342,7 +406,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 <div>
                   <label className="text-xs font-medium block mb-1.5">Ad Name</label>
                   <div className="flex gap-2">
-                    <input value={form.adName} onChange={(e) => set('adName', e.target.value)}
+                    <input value={form.adName} onChange={(e) => { setNameEdited(true); set('adName', e.target.value); }}
                       placeholder="Auto-generated or enter manually"
                       className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary font-mono text-xs"
                     />
@@ -352,7 +416,11 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                       <Wand2 className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">Fill Format, Size, and Angle first, then use the wand to auto-generate.</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {nameEdited
+                      ? 'Custom name — the wand rebuilds it from your naming convention.'
+                      : 'Building automatically as you fill in the brief.'}
+                  </p>
                 </div>
 
                 {/* Format + Size */}
@@ -446,12 +514,21 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 )}
 
                 {/* Links */}
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Inspiration Link</label>
-                  <input value={form.inspirationLink} onChange={(e) => set('inspirationLink', e.target.value)}
-                    placeholder="https://..."
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Inspiration Link</label>
+                    <input value={form.inspirationLink} onChange={(e) => set('inspirationLink', e.target.value)}
+                      placeholder="https://..."
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Reference Creative</label>
+                    <input value={form.referenceCreative} onChange={(e) => set('referenceCreative', e.target.value)}
+                      placeholder="Asset the designer should use"
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -469,13 +546,32 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     />
                   </div>
                 </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1.5">Final Deliverable</label>
+                  <div className="flex gap-2">
+                    <input value={form.finalDeliverable} onChange={(e) => set('finalDeliverable', e.target.value)}
+                      placeholder="Finished asset — used when launching to Meta"
+                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    {form.finalDeliverable && (
+                      <a href={form.finalDeliverable} target="_blank" rel="noreferrer"
+                        title="View creative"
+                        className="border border-border rounded-lg px-3 py-2 text-muted-foreground hover:text-primary hover:border-primary transition-colors flex items-center">
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+                  </div>
+                </div>
               </>
             )}
 
             {tab === 'copy' && (
               <>
                 <div>
-                  <label className="text-xs font-medium block mb-1.5">Primary Text</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium">Primary Text</label>
+                    <CopyBankPicker entries={bankPrimary} onPick={(v) => set('primaryText', v)} />
+                  </div>
                   <textarea value={form.primaryText} onChange={(e) => set('primaryText', e.target.value)}
                     placeholder="The main body copy for this ad..."
                     rows={5}
@@ -484,16 +580,32 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                   <p className="text-[11px] text-muted-foreground mt-1">{form.primaryText.length} characters</p>
                 </div>
                 <div>
-                  <label className="text-xs font-medium block mb-1.5">Headline</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium">Headline</label>
+                    <CopyBankPicker entries={bankHeadlines} onPick={(v) => set('headline', v)} />
+                  </div>
                   <input value={form.headline} onChange={(e) => set('headline', e.target.value)}
                     placeholder="Short, punchy headline"
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium block mb-1.5">Description (optional)</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium">Description (optional)</label>
+                    <CopyBankPicker entries={bankDescriptions} onPick={(v) => set('adDescription', v)} />
+                  </div>
                   <input value={form.adDescription} onChange={(e) => set('adDescription', e.target.value)}
                     placeholder="Ad link description"
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium">Landing Page</label>
+                    <CopyBankPicker entries={bankLandingPages} onPick={(v) => set('landingPage', v)} />
+                  </div>
+                  <input value={form.landingPage} onChange={(e) => set('landingPage', e.target.value)}
+                    placeholder="https://brand.com/product"
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>

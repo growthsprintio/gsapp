@@ -35,6 +35,8 @@ export interface RoadmapItem {
   inspirationLink?: string;
   creativeLink?: string;
   frameioLink?: string;
+  referenceCreative?: string;
+  finalDeliverable?: string;
   landingPage?: string;
   product?: string;
   dueDate?: string;
@@ -78,10 +80,16 @@ export interface Roadmap {
   items: RoadmapItem[];
 }
 
+export type CopyBankType =
+  | 'primary_text' | 'headline' | 'description' | 'hook'
+  | 'angle' | 'product' | 'landing_page';
+
 export interface CopyBankEntry {
   id: string;
-  type: 'primary_text' | 'headline' | 'description' | 'hook' | 'angle' | 'product';
+  type: CopyBankType;
   content: string;
+  /** For product / landing page entries — the destination URL. */
+  url?: string;
   tags: string[];
   usageCount: number;
   createdAt: string;
