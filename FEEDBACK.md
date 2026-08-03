@@ -29,7 +29,7 @@ Source: Loom walkthrough transcript. Status legend: ☐ todo · ☑ done · ⏸ 
 - ☐ Add **Creative format / concept format** multi-select — *list coming*
 - ☑ Add **final deliverable link**, and a place for the strategist to drop a **reference creative** the designer should use
 - ☑ Ad copy fields: **dropdown to pull from Copy Bank** (by tag) in addition to free typing
-- ☐ **Carousel = multiple assets** — needs research on Meta multi-asset upload
+- ☑ **Carousel = multiple assets** — builds Meta child_attachments (2–10 cards); untested against a live account
 
 ## Copy Bank
 - ☑ "Add Copy" should **pre-select the type** currently being viewed
@@ -41,8 +41,8 @@ Source: Loom walkthrough transcript. Status legend: ☐ todo · ☑ done · ⏸ 
 - ☑ Default to **list view**
 
 ## Team
-- ☐ Invite by email should **send a signup link that joins them to the workspace** (today it says "they must sign up first")
-- ☐ One email across multiple accounts → surface all of them under Workspaces
+- ☑ Invite by email **sends a signup link that joins them to the workspace**
+- ☑ One email across multiple accounts → all listed, and workspace switching now actually works
 - ⏸ Role permission changes — *cofounder sending details*
 
 ## Settings
