@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServer, createSupabaseAdmin, supabaseConfigured } from '@/lib/supabase-server';
+import { getSessionWorkspaceId } from '@/lib/meta-session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -48,7 +49,8 @@ export async function GET() {
       };
     });
 
-  return NextResponse.json({ configured: true, userId: user.id, workspaces });
+  const activeWorkspaceId = await getSessionWorkspaceId();
+  return NextResponse.json({ configured: true, userId: user.id, activeWorkspaceId, workspaces });
 }
 
 /** POST /api/workspaces — create a workspace and join it as admin. */

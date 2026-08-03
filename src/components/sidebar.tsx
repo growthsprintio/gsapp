@@ -32,12 +32,25 @@ function AccountSwitcher() {
     if (!supabaseConfigured) return;
     fetch('/api/workspaces')
       .then((r) => r.json())
-      .then((d) => setWorkspaces(d.workspaces || []))
+      .then((d) => { setWorkspaces(d.workspaces || []); if (d.activeWorkspaceId) setActiveId(d.activeWorkspaceId); })
       .catch(() => {});
   }, []);
 
-  const current = workspaces[0];
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const current = workspaces.find((w) => w.id === activeId) ?? workspaces[0];
   const initials = current?.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() ?? '··';
+
+  const switchTo = async (id: string) => {
+    await fetch('/api/workspaces/switch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspaceId: id }),
+    });
+    setActiveId(id);
+    setOpen(false);
+    // Content is workspace-scoped server-side, so reload to pull the new one.
+    window.location.href = '/dashboard';
+  };
 
   return (
     <div className="relative px-3 py-3 border-b border-border">
@@ -68,11 +81,11 @@ function AccountSwitcher() {
               )}
               {workspaces.map((ws, i) => {
                 const wsInitials = ws.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
-                const active = i === 0;
+                const active = ws.id === (current?.id ?? '');
                 return (
                   <button
                     key={ws.id}
-                    onClick={() => { setOpen(false); router.push('/accounts'); }}
+                    onClick={() => switchTo(ws.id)}
                     className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-muted transition-colors text-left"
                   >
                     <div className={cn(

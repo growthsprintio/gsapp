@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Users, Mail, Shield, Crown, Eye, Trash2, AlertCircle, Plus } from 'lucide-react';
+import { Users, Mail, Shield, Crown, Eye, Trash2, AlertCircle, Plus, Copy, Check, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Role = 'admin' | 'member' | 'viewer';
@@ -33,14 +33,19 @@ export default function TeamPage() {
   const [form, setForm] = useState({ email: '', role: 'member' as Role });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [invites, setInvites] = useState<{ id: string; email: string; role: Role; link: string; created_at: string }[]>([]);
+  const [inviteLink, setInviteLink] = useState('');
+  const [copied, setCopied] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch('/api/team');
-      const d = await r.json();
+      const [mRes, iRes] = await Promise.all([fetch('/api/team'), fetch('/api/team/invite')]);
+      const d = await mRes.json();
+      const inv = await iRes.json().catch(() => ({}));
       setConfigured(d.configured !== false);
       setMembers(d.members || []);
+      setInvites(inv.invites || []);
     } catch {
       setError('Could not load team members.');
     } finally {
@@ -52,23 +57,40 @@ export default function TeamPage() {
 
   const addMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy(true); setError('');
+    setBusy(true); setError(''); setInviteLink('');
     try {
-      const r = await fetch('/api/team', {
+      const r = await fetch('/api/team/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
       const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Could not add member.');
+      if (!r.ok) throw new Error(d.error || 'Could not invite.');
+
+      if (d.invited && d.link) {
+        // No account yet — surface the link so the admin can send it.
+        setInviteLink(d.link);
+      } else {
+        setShowInvite(false);
+      }
       setForm({ email: '', role: 'member' });
-      setShowInvite(false);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add member.');
+      setError(err instanceof Error ? err.message : 'Could not invite.');
     } finally {
       setBusy(false);
     }
+  };
+
+  const revokeInvite = async (id: string) => {
+    await fetch(`/api/team/invite?id=${id}`, { method: 'DELETE' });
+    await load();
+  };
+
+  const copy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(''), 2000);
   };
 
   const changeRole = async (userId: string, role: Role) => {
@@ -135,8 +157,28 @@ export default function TeamPage() {
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            They need a GrowthSprint account first — ask them to sign up, then add them here.
+            If they already have an account they join immediately. If not, you&apos;ll get an invite
+            link to send — signing up through it drops them straight into this workspace.
           </p>
+
+          {inviteLink && (
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+              <p className="text-[11px] font-medium text-primary mb-2">
+                Invite created — send them this link:
+              </p>
+              <div className="flex items-center gap-2">
+                <input readOnly value={inviteLink}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="flex-1 border border-border rounded-lg px-2.5 py-1.5 text-[11px] bg-background font-mono"
+                />
+                <button type="button" onClick={() => copy(inviteLink, 'new')}
+                  className="border border-border rounded-lg px-2.5 py-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                  {copied === 'new' ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="flex items-start gap-1.5">
               <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -144,14 +186,46 @@ export default function TeamPage() {
             </div>
           )}
           <div className="flex gap-3">
-            <button type="button" onClick={() => { setShowInvite(false); setError(''); }}
-              className="border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">Cancel</button>
+            <button type="button" onClick={() => { setShowInvite(false); setError(''); setInviteLink(''); }}
+              className="border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">
+              {inviteLink ? 'Done' : 'Cancel'}
+            </button>
             <button type="submit" disabled={busy}
               className="bg-primary text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40">
-              {busy ? 'Adding…' : 'Add member'}
+              {busy ? 'Inviting…' : 'Send invite'}
             </button>
           </div>
         </form>
+      )}
+
+      {/* Pending invites */}
+      {invites.length > 0 && (
+        <div className="bg-card border border-border rounded-xl overflow-hidden mb-6">
+          <div className="px-5 py-3 border-b border-border flex items-center gap-2">
+            <Link2 className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium">{invites.length} pending invite{invites.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="divide-y divide-border">
+            {invites.map((inv) => (
+              <div key={inv.id} className="flex items-center gap-3 px-5 py-3 group">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm truncate">{inv.email}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Invited as {ROLE_CONFIG[inv.role]?.label ?? inv.role} · not yet accepted
+                  </p>
+                </div>
+                <button onClick={() => copy(inv.link, inv.id)}
+                  className="flex items-center gap-1.5 text-[11px] border border-border rounded-lg px-2.5 py-1.5 hover:bg-secondary transition-colors">
+                  {copied === inv.id ? <><Check className="w-3 h-3 text-primary" /> Copied</> : <><Copy className="w-3 h-3" /> Copy link</>}
+                </button>
+                <button onClick={() => revokeInvite(inv.id)} title="Revoke invite"
+                  className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {error && !showInvite && (

@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Zap, UserPlus } from 'lucide-react';
 import { createSupabaseBrowser, supabaseConfigured } from '@/lib/supabase';
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const params = useSearchParams();
+  // Arriving via an invite link — the workspace already exists, so don't ask
+  // for a name; bootstrap will join them on the way in.
+  const invited = !!params.get('invite');
   const [form, setForm] = useState({ email: '', password: '', workspace: '' });
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -77,16 +81,18 @@ export default function SignupPage() {
             <UserPlus className="w-4 h-4 text-muted-foreground" />
             <h1 className="text-sm font-semibold">Create your account</h1>
           </div>
-          <p className="text-xs text-muted-foreground mb-5">Sets up your first workspace too.</p>
+          <p className="text-xs text-muted-foreground mb-5">{invited ? "You've been invited — signing up joins you to that workspace." : 'Sets up your first workspace too.'}</p>
 
           <form onSubmit={handleSubmit} className="space-y-3">
+            {!invited && (
             <div>
               <label className="text-xs font-medium block mb-1.5">Workspace name</label>
-              <input required value={form.workspace} onChange={(e) => set('workspace', e.target.value)}
+              <input required={!invited} value={form.workspace} onChange={(e) => set('workspace', e.target.value)}
                 placeholder="e.g. Luminary Skincare"
                 className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
+            )}
             <div>
               <label className="text-xs font-medium block mb-1.5">Email</label>
               <input type="email" required value={form.email} onChange={(e) => set('email', e.target.value)}
@@ -115,5 +121,13 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupForm />
+    </Suspense>
   );
 }

@@ -19,7 +19,30 @@ export async function POST(req: Request) {
   const admin = createSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: 'Server is missing SUPABASE_SERVICE_ROLE_KEY.' }, { status: 500 });
 
-  // Already a member of something? Nothing to do.
+  // Accept any invites waiting on this email, so an invited user lands in the
+  // right workspace instead of getting a fresh empty one.
+  const email = (user.email || '').toLowerCase();
+  let joined: string | null = null;
+  if (email) {
+    const { data: invites } = await admin
+      .from('workspace_invites')
+      .select('id, workspace_id, role')
+      .ilike('email', email)
+      .is('accepted_at', null);
+
+    for (const inv of invites || []) {
+      await admin
+        .from('workspace_members')
+        .upsert({ workspace_id: inv.workspace_id, user_id: user.id, role: inv.role });
+      await admin
+        .from('workspace_invites')
+        .update({ accepted_at: new Date().toISOString() })
+        .eq('id', inv.id);
+      joined = inv.workspace_id;
+    }
+  }
+
+  // Already a member of something? Nothing more to do.
   const { data: existing } = await admin
     .from('workspace_members')
     .select('workspace_id')
@@ -27,7 +50,12 @@ export async function POST(req: Request) {
     .limit(1);
 
   if (existing && existing.length > 0) {
-    return NextResponse.json({ ok: true, workspaceId: existing[0].workspace_id, created: false });
+    return NextResponse.json({
+      ok: true,
+      workspaceId: joined ?? existing[0].workspace_id,
+      created: false,
+      joinedViaInvite: !!joined,
+    });
   }
 
   const body = await req.json().catch(() => ({}));

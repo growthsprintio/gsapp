@@ -2,7 +2,14 @@
 import { createSupabaseServer, createSupabaseAdmin, supabaseConfigured } from './supabase-server';
 import { getMetaConfig, getMetaConfigForWorkspace, type MetaConfig } from './meta';
 
-/** The signed-in user's first workspace id, or null. */
+export const ACTIVE_WORKSPACE_COOKIE = 'gs_workspace';
+
+/**
+ * The workspace the user is currently working in.
+ * Prefers the active-workspace cookie (set by the switcher) but only after
+ * confirming membership, so the cookie can't be used to reach someone else's
+ * workspace. Falls back to their first membership.
+ */
 export async function getSessionWorkspaceId(): Promise<string | null> {
   if (!supabaseConfigured) return null;
   try {
@@ -13,14 +20,19 @@ export async function getSessionWorkspaceId(): Promise<string | null> {
     const admin = createSupabaseAdmin();
     if (!admin) return null;
 
-    const { data } = await admin
+    const { data: memberships } = await admin
       .from('workspace_members')
       .select('workspace_id')
-      .eq('user_id', user.id)
-      .limit(1)
-      .maybeSingle();
+      .eq('user_id', user.id);
 
-    return data?.workspace_id ?? null;
+    const ids = (memberships || []).map((m) => m.workspace_id);
+    if (ids.length === 0) return null;
+
+    const { cookies } = await import('next/headers');
+    const preferred = (await cookies()).get(ACTIVE_WORKSPACE_COOKIE)?.value;
+    if (preferred && ids.includes(preferred)) return preferred;
+
+    return ids[0];
   } catch {
     return null;
   }
