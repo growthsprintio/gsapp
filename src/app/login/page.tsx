@@ -14,16 +14,38 @@ function LoginForm() {
   // Surface errors handed back by /auth/callback (expired link, etc.)
   const [error, setError] = useState(params.get('error') || '');
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   const dest = () => {
     const from = params.get('from');
     return from && from.startsWith('/') ? from : '/dashboard';
   };
 
+  // Password reset goes through Supabase email; the link returns to
+  // /auth/callback which hands off to /reset-password.
+  const sendReset = async () => {
+    setError(''); setNotice('');
+    if (!email) { setError('Enter your email first, then choose Forgot password.'); return; }
+    setResetting(true);
+    try {
+      const { error: err } = await createSupabaseBrowser().auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      });
+      if (err) throw new Error(err.message);
+      setNotice(`If an account exists for ${email}, a reset link is on its way.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send reset email.');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setNotice('');
 
     try {
       if (supabaseConfigured) {
@@ -83,6 +105,7 @@ function LoginForm() {
               className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
             />
             {error && <p className="text-xs text-red-600">{error}</p>}
+            {notice && <p className="text-xs text-primary">{notice}</p>}
             <button type="submit" disabled={loading || !password}
               className="w-full bg-primary text-white rounded-lg py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
               {loading ? 'Signing in…' : 'Sign in'}
@@ -90,9 +113,17 @@ function LoginForm() {
           </form>
 
           {supabaseConfigured && (
-            <p className="text-xs text-muted-foreground text-center mt-4">
-              No account? <Link href="/signup" className="text-primary hover:underline">Create one</Link>
-            </p>
+            <>
+              <div className="text-center mt-3">
+                <button type="button" onClick={sendReset} disabled={resetting}
+                  className="text-xs text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50">
+                  {resetting ? 'Sending reset link…' : 'Forgot password?'}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center mt-3 pt-3 border-t border-border">
+                No account? <Link href="/signup" className="text-primary hover:underline">Create one</Link>
+              </p>
+            </>
           )}
         </div>
         <p className="text-[11px] text-muted-foreground text-center mt-4">

@@ -16,7 +16,11 @@ export async function GET(req: Request) {
   const code = url.searchParams.get('code');
   const tokenHash = url.searchParams.get('token_hash');
   const type = url.searchParams.get('type');
-  const next = url.searchParams.get('next') || '/dashboard';
+  // Recovery links always land on the "choose a new password" screen, even if
+  // Supabase's email template didn't carry a ?next.
+  const next = type === 'recovery'
+    ? '/reset-password'
+    : url.searchParams.get('next') || '/dashboard';
 
   // Supabase can report failures directly on the redirect.
   const errDesc = url.searchParams.get('error_description') || url.searchParams.get('error');

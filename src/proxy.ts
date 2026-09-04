@@ -61,5 +61,5 @@ export async function proxy(req: NextRequest) {
 
 // Public: login, signup, auth endpoints, static assets.
 export const config = {
-  matcher: ['/((?!login|signup|auth/|api/auth|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!login|signup|reset-password|auth/|api/auth|_next/static|_next/image|favicon.ico).*)'],
 };

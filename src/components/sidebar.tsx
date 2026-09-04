@@ -227,13 +227,22 @@ export function Sidebar() {
       {user && (
         <div className="px-3 py-3 border-t border-border">
           <div className="flex items-center gap-2.5 px-2.5 py-2">
-            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
-              {user.name.charAt(0)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate">{user.name}</p>
-              <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
-            </div>
+            {/* Clicking the identity block opens account settings. */}
+            <Link
+              href="/account"
+              title="Account settings"
+              className={cn(
+                'flex items-center gap-2.5 flex-1 min-w-0 -mx-1.5 px-1.5 py-1 rounded-lg transition-colors hover:bg-muted',
+                pathname === '/account' && 'bg-muted'
+              )}>
+              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary flex-shrink-0">
+                {user.name.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium truncate">{user.name}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+              </div>
+            </Link>
             <button
               onClick={async () => {
                 if (supabaseConfigured) {
