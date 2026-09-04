@@ -262,8 +262,6 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     setNameIndex(Math.floor(Math.random() * 99) + 1);
   }, [editItem, open]);
 
-  if (!open) return null;
-
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const setCustom = (key: string, val: string) => setCustomValues((cv) => ({ ...cv, [key]: val }));
@@ -281,12 +279,15 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
   // Build the ad name progressively as the brief is filled in, unless the user
   // has typed their own name — then we leave it alone.
+  // Keep this above the `!open` return: every hook must run on every render.
   useEffect(() => {
     if (!open || nameEdited) return;
     const next = buildName(form);
     if (next && next !== form.adName) setForm((f) => ({ ...f, adName: next }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, nameEdited, form.adFormat, form.adSize, form.angle, form.concept, form.product, customValues]);
+
+  if (!open) return null;
 
   // Creative assets: one URL for a normal ad, 2–10 lines for a carousel.
   const assetUrls = (form.creativeLink || '')
