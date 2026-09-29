@@ -205,6 +205,9 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const [adSetsError, setAdSetsError] = useState('');
   const [adSetsNonce, setAdSetsNonce] = useState(0);
   const adSetsFetched = useRef(false);
+  const [dupOpen, setDupOpen] = useState(false);
+  const [dupName, setDupName] = useState('');
+  const [dupState, setDupState] = useState<'idle' | 'working'>('idle');
   const [launchState, setLaunchState] = useState<'idle' | 'launching' | 'done' | 'error'>('idle');
   const [launchError, setLaunchError] = useState('');
   // Once the user types their own ad name we stop auto-generating it.
@@ -246,6 +249,34 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     setAdSets([]);
     setAdSetsError('');
     setAdSetsNonce((n) => n + 1);
+  };
+
+  // Duplicate the selected ad set so a creative batch gets its own paused
+  // ad set, without anyone rebuilding targeting by hand.
+  const duplicateAdSet = async () => {
+    if (!form.metaAdSetId) return;
+    setDupState('working');
+    setAdSetsError('');
+    try {
+      const res = await fetch('/api/meta/adsets/duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adSetId: form.metaAdSetId, name: dupName.trim() || undefined }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Could not duplicate the ad set.');
+
+      // Reload the list, then select the copy we just made.
+      const listed = await fetch('/api/meta/adsets').then((r) => r.json());
+      setAdSets(listed.adsets || []);
+      set('metaAdSetId', d.adSetId);
+      setDupOpen(false);
+      setDupName('');
+      setDupState('idle');
+    } catch (err) {
+      setAdSetsError(err instanceof Error ? err.message : 'Could not duplicate the ad set.');
+      setDupState('idle');
+    }
   };
 
   useEffect(() => {
@@ -731,6 +762,43 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                       </select>
                     </div>
                   </div>
+                )}
+
+                {/* Give a creative batch its own ad set without rebuilding targeting */}
+                {metaConfigured && !adSetsLoading && form.metaAdSetId && (
+                  dupOpen ? (
+                    <div className="border border-border rounded-lg px-3 py-2.5 bg-muted/30 space-y-2">
+                      <p className="text-[11px] text-muted-foreground">
+                        Copies targeting, budget, placements and schedule from the selected ad set.
+                        The copy is created <span className="font-medium">paused</span> and empty.
+                      </p>
+                      <input value={dupName} onChange={(e) => setDupName(e.target.value)}
+                        placeholder="Name for the new ad set (optional)"
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => { setDupOpen(false); setDupName(''); }}
+                          disabled={dupState === 'working'}
+                          className="flex-1 border border-border rounded-lg py-1.5 text-xs hover:bg-secondary transition-colors disabled:opacity-40">
+                          Cancel
+                        </button>
+                        <button type="button" onClick={duplicateAdSet} disabled={dupState === 'working'}
+                          className="flex-1 bg-primary text-white rounded-lg py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center justify-center gap-1.5">
+                          {dupState === 'working' ? (
+                            <>
+                              <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                              Duplicating…
+                            </>
+                          ) : 'Create paused copy'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => setDupOpen(true)}
+                      className="text-[11px] text-primary hover:underline">
+                      + Duplicate this ad set for a new batch
+                    </button>
+                  )
                 )}
 
                 {/* ── Ad / Creative ── */}

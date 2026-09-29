@@ -126,6 +126,29 @@ export async function listAdSets(cfg: MetaConfig): Promise<AdSetOption[]> {
   }));
 }
 
+/**
+ * Duplicate an existing ad set, keeping its targeting, budget, placements and
+ * schedule. The copy lands PAUSED — Meta's own default for this edge, but we
+ * send it explicitly so a change of default can't make ads go live.
+ * Children are NOT copied (deep_copy omitted): we want an empty ad set to put
+ * new creative into, not a clone of the old ads.
+ */
+export async function duplicateAdSet(
+  cfg: MetaConfig,
+  adSetId: string,
+  newName?: string,
+): Promise<{ id: string }> {
+  const copy = await metaPost(cfg, `${adSetId}/copies`, { status_option: 'PAUSED' });
+
+  // The edge answers with copied_adset_id; rename_options only does
+  // prefix/suffix, so an explicit name needs a follow-up update.
+  const id = (copy as Record<string, unknown>).copied_adset_id ?? copy.id;
+  if (!id) throw new Error('Meta did not return an id for the duplicated ad set.');
+
+  if (newName?.trim()) await metaPost(cfg, String(id), { name: newName.trim() });
+  return { id: String(id) };
+}
+
 // ── launch: create Ad Creative + Ad inside an EXISTING ad set ─────────────────
 
 /** The subset of a RoadmapItem the client sends to /api/meta/launch. */
