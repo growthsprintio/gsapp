@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Check, AlertCircle, Link2, Unlink, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +29,8 @@ export function MetaConnectionCard() {
   const [saving, setSaving] = useState(false);
   const [pick, setPick] = useState({ adAccountId: '', pageId: '' });
   const [notice, setNotice] = useState('');
+  const [connecting, setConnecting] = useState(false);
+  const closeWatch = useRef<number | null>(null);
 
   // Resolve the signed-in user's Supabase workspace (Meta connections key off this).
   useEffect(() => {
@@ -59,12 +61,73 @@ export function MetaConnectionCard() {
 
   useEffect(() => { if (workspaceId) load(); }, [workspaceId, load]);
 
-  // Surface the OAuth round-trip result
+  // Surface the OAuth round-trip result (redirect fallback path only — the
+  // popup reports back over postMessage instead).
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     if (p.get('meta_connected')) setNotice('Meta connected. Now choose the ad account and Page to use.');
     if (p.get('meta_error')) setNotice(`Connection failed: ${p.get('meta_error')}`);
   }, []);
+
+  const stopWatching = () => {
+    if (closeWatch.current !== null) {
+      window.clearInterval(closeWatch.current);
+      closeWatch.current = null;
+    }
+  };
+
+  // The OAuth popup posts its result back here when it finishes.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (!e.data || e.data.source !== 'growthsprint-meta-oauth') return;
+      stopWatching();
+      setConnecting(false);
+      if (e.data.ok) {
+        setNotice('Meta connected. Now choose the ad account and Page to use.');
+        load();
+      } else {
+        setNotice(`Connection failed: ${e.data.error || 'Unknown error.'}`);
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => { window.removeEventListener('message', onMessage); stopWatching(); };
+  }, [load]);
+
+  // Keep the user in the app: Facebook opens in a popup, not this tab.
+  const connect = () => {
+    if (!workspaceId) return;
+    const w = 600;
+    const h = 760;
+    const left = Math.max(0, window.screenX + (window.outerWidth - w) / 2);
+    const top = Math.max(0, window.screenY + (window.outerHeight - h) / 2);
+
+    const win = window.open(
+      `/api/meta/oauth/start?workspace=${workspaceId}&popup=1`,
+      'growthsprint-meta-oauth',
+      `popup,width=${w},height=${h},left=${left},top=${top}`,
+    );
+
+    // Popup blocked — fall back to the old full-page redirect so it still works.
+    if (!win) {
+      window.location.href = `/api/meta/oauth/start?workspace=${workspaceId}`;
+      return;
+    }
+
+    setNotice('');
+    setConnecting(true);
+    win.focus();
+
+    // If they close the window without finishing, don't leave the button stuck.
+    stopWatching();
+    closeWatch.current = window.setInterval(() => {
+      if (win.closed) {
+        stopWatching();
+        setConnecting(false);
+        load(); // in case it did succeed and the message was missed
+      }
+    }, 600);
+  };
 
   const savePick = async () => {
     if (!workspaceId) return;
@@ -126,10 +189,17 @@ export function MetaConnectionCard() {
               </button>
             </>
           ) : workspaceId ? (
-            <a href={`/api/meta/oauth/start?workspace=${workspaceId}`}
-              className="flex items-center gap-1.5 bg-primary text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors">
-              <Link2 className="w-3.5 h-3.5" /> Connect Meta
-            </a>
+            <button onClick={connect} disabled={connecting}
+              className="flex items-center gap-1.5 bg-primary text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-60">
+              {connecting ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Waiting for Facebook…
+                </>
+              ) : (
+                <><Link2 className="w-3.5 h-3.5" /> Connect Meta</>
+              )}
+            </button>
           ) : null}
         </div>
       </div>
