@@ -208,6 +208,8 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const [dupOpen, setDupOpen] = useState(false);
   const [dupName, setDupName] = useState('');
   const [dupState, setDupState] = useState<'idle' | 'working'>('idle');
+  const [campaignCount, setCampaignCount] = useState<number | null>(null);
+  const [adAccountId, setAdAccountId] = useState<string | null>(null);
   const [launchState, setLaunchState] = useState<'idle' | 'launching' | 'done' | 'error'>('idle');
   const [launchError, setLaunchError] = useState('');
   // Once the user types their own ad name we stop auto-generating it.
@@ -238,6 +240,8 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
       .then((r) => r.json())
       .then((d) => {
         setAdSets(d.adsets || []);
+        setCampaignCount(typeof d.campaignCount === 'number' ? d.campaignCount : null);
+        setAdAccountId(d.adAccountId || null);
         if (d.error) setAdSetsError(d.error);
       })
       .catch(() => setAdSetsError('Could not reach Meta. Check the connection and try again.'))
@@ -729,12 +733,25 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 ) : adSets.length === 0 ? (
                   <div className="bg-muted/50 border border-border rounded-lg px-3 py-2.5">
                     <p className="text-xs text-muted-foreground">
-                      No ad sets found in this account — create a campaign &amp; ad set in Ads Manager first.
+                      {campaignCount === 0
+                        ? 'This ad account has no campaigns yet. Build the first campaign and ad set in Ads Manager — after that you can duplicate it from here.'
+                        : campaignCount && campaignCount > 0
+                          ? `Found ${campaignCount} campaign${campaignCount === 1 ? '' : 's'} but no ad sets. Add an ad set in Ads Manager — it owns budget, targeting and schedule.`
+                          : 'No ad sets found in this account — create a campaign & ad set in Ads Manager first.'}
                     </p>
-                    <button type="button" onClick={reloadAdSets}
-                      className="text-[11px] text-primary underline mt-1.5 hover:no-underline">
-                      Refresh
-                    </button>
+                    {adAccountId && (
+                      <p className="text-[11px] text-muted-foreground/70 mt-1 font-mono">{adAccountId}</p>
+                    )}
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <button type="button" onClick={reloadAdSets}
+                        className="text-[11px] text-primary underline hover:no-underline">
+                        Refresh
+                      </button>
+                      <a href="https://adsmanager.facebook.com/adsmanager" target="_blank" rel="noreferrer"
+                        className="text-[11px] text-primary underline hover:no-underline">
+                        Open Ads Manager
+                      </a>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">

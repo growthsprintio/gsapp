@@ -112,6 +112,19 @@ export interface AdSetOption {
   campaignName: string;
 }
 
+/**
+ * Campaign count for the connected account — used only to tell "this account
+ * is empty" apart from "campaigns exist but none has an ad set yet", which are
+ * very different problems for the person staring at an empty dropdown.
+ */
+export async function countCampaigns(cfg: MetaConfig): Promise<number> {
+  const json = await metaGet(cfg, `${cfg.adAccountId}/campaigns`, {
+    fields: 'id',
+    limit: '200',
+  });
+  return (json.data || []).length;
+}
+
 export async function listAdSets(cfg: MetaConfig): Promise<AdSetOption[]> {
   const json = await metaGet(cfg, `${cfg.adAccountId}/adsets`, {
     fields: 'id,name,status,campaign{id,name,status}',

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSessionMetaConfig } from '@/lib/meta-session';
-import { listAdSets } from '@/lib/meta';
+import { listAdSets, countCampaigns } from '@/lib/meta';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,6 +12,20 @@ export async function GET() {
 
   try {
     const adsets = await listAdSets(cfg);
+
+    // An empty dropdown is ambiguous — say whether the account is bare or just
+    // has campaigns with no ad sets under them.
+    if (adsets.length === 0) {
+      let campaignCount: number | null = null;
+      try { campaignCount = await countCampaigns(cfg); } catch { /* diagnostic only */ }
+      return NextResponse.json({
+        configured: true,
+        adsets,
+        campaignCount,
+        adAccountId: cfg.adAccountId,
+      });
+    }
+
     return NextResponse.json({ configured: true, adsets });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to load ad sets.';
