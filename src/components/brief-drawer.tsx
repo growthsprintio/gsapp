@@ -202,6 +202,9 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const [metaAccount, setMetaAccount] = useState<string | null>(null);
   const [adSets, setAdSets] = useState<{ id: string; name: string; status: string; campaignId: string; campaignName: string }[]>([]);
   const [adSetsLoading, setAdSetsLoading] = useState(false);
+  const [adSetsError, setAdSetsError] = useState('');
+  const [adSetsNonce, setAdSetsNonce] = useState(0);
+  const adSetsFetched = useRef(false);
   const [launchState, setLaunchState] = useState<'idle' | 'launching' | 'done' | 'error'>('idle');
   const [launchError, setLaunchError] = useState('');
   // Once the user types their own ad name we stop auto-generating it.
@@ -217,17 +220,33 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     }
   }, [open, tab, metaConfigured]);
 
-  // Load existing campaigns/ad sets for the launch selector
+  // Load existing campaigns/ad sets for the launch selector.
+  // Guarded by a ref, not by adSets.length: an account with no ad sets (or a
+  // failing request) leaves the list empty, and keying off that re-fired the
+  // fetch forever.
   useEffect(() => {
-    if (open && tab === 'launch' && metaConfigured && adSets.length === 0 && !adSetsLoading) {
-      setAdSetsLoading(true);
-      fetch('/api/meta/adsets')
-        .then((r) => r.json())
-        .then((d) => setAdSets(d.adsets || []))
-        .catch(() => setAdSets([]))
-        .finally(() => setAdSetsLoading(false));
-    }
-  }, [open, tab, metaConfigured, adSets.length, adSetsLoading]);
+    if (!open) { adSetsFetched.current = false; return; }
+    if (tab !== 'launch' || !metaConfigured || adSetsFetched.current) return;
+
+    adSetsFetched.current = true; // set before awaiting so this can't re-enter
+    setAdSetsLoading(true);
+    setAdSetsError('');
+    fetch('/api/meta/adsets')
+      .then((r) => r.json())
+      .then((d) => {
+        setAdSets(d.adsets || []);
+        if (d.error) setAdSetsError(d.error);
+      })
+      .catch(() => setAdSetsError('Could not reach Meta. Check the connection and try again.'))
+      .finally(() => setAdSetsLoading(false));
+  }, [open, tab, metaConfigured, adSetsNonce]);
+
+  const reloadAdSets = () => {
+    adSetsFetched.current = false;
+    setAdSets([]);
+    setAdSetsError('');
+    setAdSetsNonce((n) => n + 1);
+  };
 
   useEffect(() => {
     if (editItem) {
@@ -658,14 +677,34 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Launch Into</p>
                 {!metaConfigured ? (
                   <p className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-lg px-3 py-2.5">
-                    Connect Meta (env credentials) to load your campaigns and ad sets.
+                    Connect Meta in Settings → Integrations to load your campaigns and ad sets.
                   </p>
                 ) : adSetsLoading ? (
                   <p className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-lg px-3 py-2.5">Loading campaigns…</p>
+                ) : adSetsError ? (
+                  <div className="bg-red-50 border border-red-100 rounded-lg px-3 py-2.5">
+                    <div className="flex items-start gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-xs text-red-600 font-medium">Couldn&apos;t load campaigns</p>
+                        <p className="text-[11px] text-red-600/80 mt-0.5 break-words">{adSetsError}</p>
+                      </div>
+                    </div>
+                    <button type="button" onClick={reloadAdSets}
+                      className="text-[11px] text-red-700 underline mt-2 hover:no-underline">
+                      Try again
+                    </button>
+                  </div>
                 ) : adSets.length === 0 ? (
-                  <p className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-lg px-3 py-2.5">
-                    No ad sets found in this account — create a campaign &amp; ad set in Ads Manager first.
-                  </p>
+                  <div className="bg-muted/50 border border-border rounded-lg px-3 py-2.5">
+                    <p className="text-xs text-muted-foreground">
+                      No ad sets found in this account — create a campaign &amp; ad set in Ads Manager first.
+                    </p>
+                    <button type="button" onClick={reloadAdSets}
+                      className="text-[11px] text-primary underline mt-1.5 hover:no-underline">
+                      Refresh
+                    </button>
+                  </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -768,8 +807,8 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                   )}
                   <p className="text-[11px] text-muted-foreground mt-2 text-center">
                     {metaConfigured
-                      ? 'Creates a PAUSED campaign, ad set & ad — activate it in Ads Manager.'
-                      : 'Set META_ACCESS_TOKEN, META_AD_ACCOUNT_ID & META_PAGE_ID to enable real pushes.'}
+                      ? 'Creates a PAUSED ad inside the ad set you picked — activate it in Ads Manager.'
+                      : 'Connect Meta in Settings → Integrations to enable real pushes.'}
                   </p>
                 </div>
               </>
