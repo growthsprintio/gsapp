@@ -64,7 +64,16 @@ export async function POST(req: Request) {
   const { error } = await admin
     .from('workspace_invites')
     .upsert(
-      { workspace_id: workspaceId, email: normalized, role, token, invited_by: user.id },
+      {
+        workspace_id: workspaceId,
+        email: normalized,
+        role,
+        token,
+        invited_by: user.id,
+        // Re-inviting the same address must reset the row to pending, or
+        // bootstrap would skip it as already accepted.
+        accepted_at: null,
+      },
       { onConflict: 'workspace_id,email' },
     );
   if (error) return NextResponse.json({ error: error.message }, { status: 502 });

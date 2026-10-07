@@ -174,7 +174,7 @@ const EMPTY = {
   description: '', primaryText: '', headline: '', adDescription: '',
   inspirationLink: '', creativeLink: '', frameioLink: '', landingPage: '',
   referenceCreative: '', finalDeliverable: '',
-  product: '', dueDate: '', adLength: '',
+  product: '', productCategory: '', dueDate: '', adLength: '',
   // Meta launch config — ads launch into EXISTING campaigns/ad sets
   metaCampaignId: '', metaAdSetId: '', metaCTA: '',
 };
@@ -302,6 +302,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
         finalDeliverable: editItem.finalDeliverable || '',
         landingPage: editItem.landingPage || '',
         product: editItem.product || '',
+        productCategory: editItem.productCategory || '',
         dueDate: editItem.dueDate || '',
         adLength: editItem.adLength || '',
         metaCampaignId: editItem.metaCampaignId || '',
@@ -557,6 +558,17 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     />
                     <p className="text-[11px] text-muted-foreground mt-1">First product is used in the ad name.</p>
                   </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Product Category</label>
+                    <input value={form.productCategory} onChange={(e) => set('productCategory', e.target.value)}
+                      placeholder="e.g. grooming"
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">Available as <span className="font-mono">{'{pc}'}</span> in ad names.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium block mb-1.5">Due Date</label>
                     <input type="date" value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)}

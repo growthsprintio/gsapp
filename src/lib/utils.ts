@@ -51,8 +51,41 @@ export const DEFAULT_NAMING_CONVENTION: NamingConvention = {
     ]},
     { key: 'c', label: 'Concept', source: 'field', field: 'concept', fallback: '', maxLength: 10, values: [] },
     { key: 'p', label: 'Product', source: 'field', field: 'product', fallback: '', maxLength: 8, values: [] },
+    { key: 'pc', label: 'Product Category', source: 'field', field: 'productCategory', fallback: '', maxLength: 8, values: [] },
     { key: '#', label: 'Index', source: 'custom', fallback: '001', values: [] },
   ],
+};
+
+/**
+ * The prefixed, human-readable scheme from the 9/29 review:
+ *   af: Video | f: before and after | p: cat spray | a: softer fur
+ * Offered as a preset rather than the default so existing ad names keep
+ * resolving the way they always have.
+ *
+ * Note the prefixes are display labels, not storage keys — {f} stays "format"
+ * internally and simply renders as "af:".
+ */
+export const READABLE_NAMING_CONVENTION: NamingConvention = {
+  style: 'readable',
+  separator: ' | ',
+  formula: '{f}{sep}{c}{sep}{p}{sep}{a}',
+  variables: DEFAULT_NAMING_CONVENTION.variables.map((v) => {
+    const prefix: Record<string, string> = {
+      f: 'af:', c: 'f:', p: 'p:', pc: 'pc:', a: 'a:', s: 's:', b: 'b:', '#': 'i:',
+    };
+
+    // Shortcode mappings are a compact-style device — keeping them here would
+    // render "af: VID" instead of "af: Video". Formats still map, but to words.
+    const values = v.key === 'f'
+      ? [
+        { match: 'static', output: 'Static' }, { match: 'video', output: 'Video' },
+        { match: 'carousel', output: 'Carousel' }, { match: 'ugc', output: 'UGC' },
+        { match: 'motion', output: 'Motion' }, { match: 'collection', output: 'Collection' },
+      ]
+      : [];
+
+    return { ...v, prefix: prefix[v.key] ?? `${v.key}:`, values };
+  }),
 };
 
 export function applyNamingConvention(
@@ -60,15 +93,21 @@ export function applyNamingConvention(
   item: Partial<RoadmapItem>,
   extra?: { brand?: string; index?: number; customValues?: Record<string, string> }
 ): string {
+  const style = convention.style ?? 'compact';
   let result = convention.formula;
   result = result.replace(/\{sep\}/g, convention.separator);
+
+  // "af:" + "Video" → "af: Video" in readable names, "af:VIDEO" in compact ones.
+  const withPrefix = (v: NamingVariable, value: string) =>
+    v.prefix ? `${v.prefix}${style === 'readable' ? ' ' : ''}${value}` : value;
 
   for (const v of convention.variables) {
     const placeholder = `{${v.key}}`;
     if (!result.includes(placeholder)) continue;
 
     if (v.key === '#') {
-      result = result.replace(placeholder, String(extra?.index ?? 1).padStart(3, '0'));
+      const n = String(extra?.index ?? 1).padStart(3, '0');
+      result = result.replace(placeholder, withPrefix(v, n));
       continue;
     }
 
@@ -84,12 +123,18 @@ export function applyNamingConvention(
 
     const mapping = v.values?.find((m) => m.match.toLowerCase() === raw.toLowerCase());
     let output = mapping ? mapping.output : raw;
-
     if (!output) output = v.fallback;
-    output = output.toUpperCase().replace(/\s+/g, '').replace(/[^A-Z0-9]/g, '');
-    if (v.maxLength) output = output.slice(0, v.maxLength);
 
-    result = result.replace(placeholder, output);
+    if (style === 'readable') {
+      // Keep the words. maxLength is a compact-style device — applying it here
+      // would cut "before and after" to "before and".
+      output = output.trim().replace(/\s+/g, ' ');
+    } else {
+      output = output.toUpperCase().replace(/\s+/g, '').replace(/[^A-Z0-9]/g, '');
+      if (v.maxLength) output = output.slice(0, v.maxLength);
+    }
+
+    result = result.replace(placeholder, withPrefix(v, output));
   }
 
   return result;

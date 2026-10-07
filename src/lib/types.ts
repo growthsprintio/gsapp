@@ -39,6 +39,7 @@ export interface RoadmapItem {
   finalDeliverable?: string;
   landingPage?: string;
   product?: string;
+  productCategory?: string;
   dueDate?: string;
   adLength?: string;
   assignee?: string;
@@ -130,14 +131,38 @@ export interface NamingVariable {
   field?: keyof RoadmapItem;
   values?: { match: string; output: string }[];
   fallback: string;
+  /** Compact style only — readable names shouldn't be truncated mid-word. */
   maxLength?: number;
+  /** Rendered before the value, e.g. "af:" → "af: Video". */
+  prefix?: string;
 }
+
+/**
+ * compact  — SHORTCODE_STYLE_001: uppercased, spaces and punctuation stripped,
+ *            maxLength applied. The original behaviour.
+ * readable — "af: Video | f: before and after": values kept as written, with
+ *            per-variable prefixes doing the work of making the name scannable.
+ */
+export type NamingStyle = 'compact' | 'readable';
 
 export interface NamingConvention {
   formula: string;
   separator: string;
   variables: NamingVariable[];
+  style?: NamingStyle;
 }
+
+/** Separator choices, including spaced forms so what you pick is what you get. */
+export const NAMING_SEPARATORS: { value: string; label: string }[] = [
+  { value: '_', label: '_   underscore' },
+  { value: '-', label: '-   dash' },
+  { value: '|', label: '|   pipe' },
+  { value: '/', label: '/   slash' },
+  { value: '.', label: '.   dot' },
+  { value: ' ', label: '␣   space' },
+  { value: ' | ', label: '␣|␣  spaced pipe' },
+  { value: ' - ', label: '␣-␣  spaced dash' },
+];
 
 // ── Meta Marketing API option lists (values are the real API enum values) ──
 export const META_OBJECTIVES: { value: string; label: string }[] = [

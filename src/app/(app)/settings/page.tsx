@@ -5,8 +5,9 @@ import { useAppStore } from '@/lib/store';
 import { Save, Building2, Zap, Bell, Tag, Plus, Trash2, Wand2, Check, AlertCircle, Workflow, MessageSquare, Clapperboard, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MetaConnectionCard } from '@/components/meta-connection-card';
-import { applyNamingConvention, DEFAULT_NAMING_CONVENTION } from '@/lib/utils';
-import type { NamingConvention, NamingVariable } from '@/lib/types';
+import { applyNamingConvention, DEFAULT_NAMING_CONVENTION, READABLE_NAMING_CONVENTION } from '@/lib/utils';
+import type { NamingConvention, NamingVariable, NamingStyle } from '@/lib/types';
+import { NAMING_SEPARATORS } from '@/lib/types';
 
 function NamingConventionBuilder() {
   const convention = useAppStore((s) => s.namingConvention);
@@ -16,31 +17,36 @@ function NamingConventionBuilder() {
   const [formula, setFormula] = useState(convention.formula);
   const [separator, setSeparator] = useState(convention.separator);
   const [variables, setVariables] = useState<NamingVariable[]>(convention.variables);
+  const [style, setStyle] = useState<NamingStyle>(convention.style ?? 'compact');
   const [editingVar, setEditingVar] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const sampleItem = {
-    adFormat: 'ugc' as const, adSize: '9:16', angle: 'Pain Point',
-    concept: 'Skincare routine', product: 'Serum Pro',
+    adFormat: 'video' as const, adSize: '9:16', angle: 'softer fur',
+    concept: 'before and after', product: 'cat spray', productCategory: 'grooming',
   };
 
-  const previewConvention: NamingConvention = { formula, separator, variables };
+  const previewConvention: NamingConvention = { formula, separator, variables, style };
   const preview = applyNamingConvention(previewConvention, sampleItem, {
     brand: currentAccount?.name?.slice(0, 3) || 'BRD',
     index: 1,
   });
 
   const handleSave = () => {
-    updateNamingConvention({ formula, separator, variables });
+    updateNamingConvention({ formula, separator, variables, style });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleReset = () => {
-    setFormula(DEFAULT_NAMING_CONVENTION.formula);
-    setSeparator(DEFAULT_NAMING_CONVENTION.separator);
-    setVariables(DEFAULT_NAMING_CONVENTION.variables);
+  const applyPreset = (preset: NamingConvention) => {
+    setFormula(preset.formula);
+    setSeparator(preset.separator);
+    setVariables(preset.variables);
+    setStyle(preset.style ?? 'compact');
+    setEditingVar(null);
   };
+
+  const handleReset = () => applyPreset(DEFAULT_NAMING_CONVENTION);
 
   const updateVariable = (key: string, updates: Partial<NamingVariable>) => {
     setVariables((vars) => vars.map((v) => v.key === key ? { ...v, ...updates } : v));
@@ -96,6 +102,7 @@ function NamingConventionBuilder() {
     { value: 'angle', label: 'Angle' },
     { value: 'concept', label: 'Concept' },
     { value: 'product', label: 'Product' },
+    { value: 'productCategory', label: 'Product Category' },
     { value: 'adLength', label: 'Ad Length' },
   ];
 
@@ -136,16 +143,40 @@ function NamingConventionBuilder() {
               placeholder="{b}{sep}{f}{sep}{s}{sep}{a}{sep}{#}"
             />
           </div>
-          <div className="w-24">
+          <div className="w-40">
             <label className="text-xs font-medium block mb-1.5">Separator</label>
             <select value={separator} onChange={(e) => setSeparator(e.target.value)}
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary font-mono">
-              <option value="_">_ (underscore)</option>
-              <option value="-">- (dash)</option>
-              <option value=".">. (dot)</option>
-              <option value=" ">  (space)</option>
+              {NAMING_SEPARATORS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
             </select>
           </div>
+        </div>
+
+        {/* Style: shortcodes vs. readable prefixed values */}
+        <div className="mb-3">
+          <label className="text-xs font-medium block mb-1.5">Style</label>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { v: 'compact' as const, title: 'Compact', eg: 'BRD_VID_9X16_SOFTER_001' },
+              { v: 'readable' as const, title: 'Readable', eg: 'af: Video | f: before and after' },
+            ]).map((opt) => (
+              <button key={opt.v} type="button" onClick={() => setStyle(opt.v)}
+                className={cn(
+                  'text-left border rounded-lg px-3 py-2 transition-colors',
+                  style === opt.v ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30',
+                )}>
+                <p className={cn('text-xs font-medium', style === opt.v && 'text-primary')}>{opt.title}</p>
+                <p className="text-[10px] text-muted-foreground font-mono truncate mt-0.5">{opt.eg}</p>
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            {style === 'readable'
+              ? 'Values keep their spaces and capitalisation, and each variable can carry a prefix. Max length is ignored so words are not cut in half.'
+              : 'Values are uppercased with spaces and punctuation stripped, then trimmed to each variable’s max length.'}
+          </p>
         </div>
 
         {/* Variable chips */}
@@ -208,11 +239,20 @@ function NamingConventionBuilder() {
                 {/* Expanded editor */}
                 {isExpanded && (
                   <div className="border-t border-border px-4 py-4 space-y-3 bg-muted/10">
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-4 gap-3">
                       <div>
                         <label className="text-xs font-medium block mb-1">Label</label>
                         <input value={v.label} onChange={(e) => updateVariable(v.key, { label: e.target.value })}
                           className="w-full border border-border rounded-lg px-3 py-1.5 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium block mb-1">
+                          Prefix <span className="text-muted-foreground font-normal">(optional)</span>
+                        </label>
+                        <input value={v.prefix || ''} onChange={(e) => updateVariable(v.key, { prefix: e.target.value })}
+                          placeholder="af:"
+                          className="w-full border border-border rounded-lg px-3 py-1.5 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary font-mono"
                         />
                       </div>
                       <div>
@@ -441,6 +481,11 @@ function NamingConventionBuilder() {
         <button type="button" onClick={handleReset}
           className="border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">
           Reset to Default
+        </button>
+        <button type="button" onClick={() => applyPreset(READABLE_NAMING_CONVENTION)}
+          title="af: Video | f: before and after | p: cat spray | a: softer fur"
+          className="border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">
+          Use readable preset
         </button>
         <button type="button" onClick={handleSave}
           className="flex items-center gap-2 bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
