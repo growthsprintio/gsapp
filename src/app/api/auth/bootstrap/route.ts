@@ -27,7 +27,10 @@ export async function POST(req: Request) {
     const { data: invites } = await admin
       .from('workspace_invites')
       .select('id, workspace_id, role')
-      .ilike('email', email)
+      // eq, not ilike: ilike treats `_` and `%` as wildcards, so an invite for
+      // johnadoe@x.com would match a signup from john_doe@x.com and join them
+      // to a workspace they were never invited to. Both sides are lowercased.
+      .eq('email', email)
       .is('accepted_at', null);
 
     for (const inv of invites || []) {

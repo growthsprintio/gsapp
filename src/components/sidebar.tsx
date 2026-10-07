@@ -27,6 +27,7 @@ function AccountSwitcher() {
   // Real Supabase workspaces — these are what Meta connections and team
   // membership are scoped to.
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string; type: string }[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supabaseConfigured) return;
@@ -36,7 +37,6 @@ function AccountSwitcher() {
       .catch(() => {});
   }, []);
 
-  const [activeId, setActiveId] = useState<string | null>(null);
   const current = workspaces.find((w) => w.id === activeId) ?? workspaces[0];
   const initials = current?.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() ?? '··';
 

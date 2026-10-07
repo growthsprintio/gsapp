@@ -68,10 +68,14 @@ export const DEFAULT_NAMING_CONVENTION: NamingConvention = {
 export const READABLE_NAMING_CONVENTION: NamingConvention = {
   style: 'readable',
   separator: ' | ',
-  formula: '{f}{sep}{c}{sep}{p}{sep}{a}',
+  // {#} is included so sibling creatives in a batch don't collide — ad names
+  // have to stay distinguishable in Meta's ad-level reporting. It carries no
+  // prefix: the review defined af:/f:/p: but left i:, o: and lp: undefined,
+  // and inventing a meaning for them would defeat the point of a convention.
+  formula: '{f}{sep}{c}{sep}{p}{sep}{a}{sep}{#}',
   variables: DEFAULT_NAMING_CONVENTION.variables.map((v) => {
     const prefix: Record<string, string> = {
-      f: 'af:', c: 'f:', p: 'p:', pc: 'pc:', a: 'a:', s: 's:', b: 'b:', '#': 'i:',
+      f: 'af:', c: 'f:', p: 'p:', pc: 'pc:', a: 'a:', s: 's:', b: 'b:',
     };
 
     // Shortcode mappings are a compact-style device — keeping them here would
@@ -84,7 +88,7 @@ export const READABLE_NAMING_CONVENTION: NamingConvention = {
       ]
       : [];
 
-    return { ...v, prefix: prefix[v.key] ?? `${v.key}:`, values };
+    return { ...v, prefix: prefix[v.key] ?? '', values };
   }),
 };
 
@@ -97,9 +101,11 @@ export function applyNamingConvention(
   let result = convention.formula;
   result = result.replace(/\{sep\}/g, convention.separator);
 
-  // "af:" + "Video" → "af: Video" in readable names, "af:VIDEO" in compact ones.
+  // "af:" + "Video" → "af: Video". Prefixes are a readable-style device; in
+  // compact names they'd inject colons into shortcodes and sidestep maxLength.
+  // An empty value drops its prefix too, so we don't emit a bare "f:".
   const withPrefix = (v: NamingVariable, value: string) =>
-    v.prefix ? `${v.prefix}${style === 'readable' ? ' ' : ''}${value}` : value;
+    v.prefix && style === 'readable' && value ? `${v.prefix} ${value}` : value;
 
   for (const v of convention.variables) {
     const placeholder = `{${v.key}}`;
@@ -134,10 +140,23 @@ export function applyNamingConvention(
       if (v.maxLength) output = output.slice(0, v.maxLength);
     }
 
-    result = result.replace(placeholder, withPrefix(v, output));
+    // Function replacement, not a string: a value containing $&, $1 or $`
+    // would otherwise be read as a replacement pattern. Compact style used to
+    // strip "$" so this was unreachable; readable style keeps it.
+    result = result.replace(placeholder, () => withPrefix(v, output));
   }
 
-  return result;
+  // Variables that resolved to nothing leave their separators behind
+  // ("af: Video |  | p: cat spray"). Collapse the runs and trim the ends.
+  const sep = convention.separator;
+  if (sep) {
+    const esc = sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result
+      .replace(new RegExp(`(?:${esc}){2,}`, 'g'), sep)
+      .replace(new RegExp(`^(?:${esc})+|(?:${esc})+$`, 'g'), '');
+  }
+
+  return result.trim();
 }
 
 export function getCustomVariables(convention: NamingConvention): NamingVariable[] {

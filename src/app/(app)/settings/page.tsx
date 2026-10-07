@@ -120,11 +120,12 @@ function NamingConventionBuilder() {
           <p className="font-mono text-sm font-semibold tracking-wide">{preview || '—'}</p>
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-[11px] text-muted-foreground">
-          <span>Format: <span className="text-foreground">UGC</span></span>
-          <span>Size: <span className="text-foreground">9:16</span></span>
-          <span>Angle: <span className="text-foreground">Pain Point</span></span>
-          <span>Concept: <span className="text-foreground">Skincare routine</span></span>
-          <span>Product: <span className="text-foreground">Serum Pro</span></span>
+          <span>Format: <span className="text-foreground">{sampleItem.adFormat}</span></span>
+          <span>Size: <span className="text-foreground">{sampleItem.adSize}</span></span>
+          <span>Angle: <span className="text-foreground">{sampleItem.angle}</span></span>
+          <span>Concept: <span className="text-foreground">{sampleItem.concept}</span></span>
+          <span>Product: <span className="text-foreground">{sampleItem.product}</span></span>
+          <span>Category: <span className="text-foreground">{sampleItem.productCategory}</span></span>
         </div>
       </div>
 
@@ -248,11 +249,13 @@ function NamingConventionBuilder() {
                       </div>
                       <div>
                         <label className="text-xs font-medium block mb-1">
-                          Prefix <span className="text-muted-foreground font-normal">(optional)</span>
+                          Prefix <span className="text-muted-foreground font-normal">
+                            {style === 'readable' ? '(optional)' : '(readable only)'}
+                          </span>
                         </label>
                         <input value={v.prefix || ''} onChange={(e) => updateVariable(v.key, { prefix: e.target.value })}
-                          placeholder="af:"
-                          className="w-full border border-border rounded-lg px-3 py-1.5 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                          placeholder="af:" disabled={style !== 'readable'}
+                          className="w-full border border-border rounded-lg px-3 py-1.5 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary font-mono disabled:opacity-40"
                         />
                       </div>
                       <div>

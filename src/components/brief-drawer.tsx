@@ -340,7 +340,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     const next = buildName(form);
     if (next && next !== form.adName) setForm((f) => ({ ...f, adName: next }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, nameEdited, form.adFormat, form.adSize, form.angle, form.concept, form.product, customValues]);
+  }, [open, nameEdited, form.adFormat, form.adSize, form.angle, form.concept, form.product, form.productCategory, customValues]);
 
   if (!open) return null;
 
