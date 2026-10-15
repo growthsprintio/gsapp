@@ -569,26 +569,28 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                {/* Due Date pairs with Ad Length when the format has one, so it
+                    isn't left sitting alone at half width. */}
+                <div className="grid grid-cols-2 gap-3 items-start">
                   <div>
                     <label className="text-xs font-medium block mb-1.5">Due Date</label>
                     <input type="date" value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)}
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
+                  {(form.adFormat === 'video' || form.adFormat === 'ugc') && (
+                    <div>
+                      <label className="text-xs font-medium block mb-1.5">
+                        Ad Length <span className="text-muted-foreground font-normal">(optional)</span>
+                      </label>
+                      <select value={form.adLength} onChange={(e) => set('adLength', e.target.value)}
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                        <option value="">Select length</option>
+                        {['0:06', '0:15', '0:30', '0:45', '1:00', '1:30', '2:00+'].map((l) => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
-
-                {/* Ad Length (optional for video) */}
-                {(form.adFormat === 'video' || form.adFormat === 'ugc') && (
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Ad Length (optional)</label>
-                    <select value={form.adLength} onChange={(e) => set('adLength', e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                      <option value="">Select length</option>
-                      {['0:06', '0:15', '0:30', '0:45', '1:00', '1:30', '2:00+'].map((l) => <option key={l} value={l}>{l}</option>)}
-                    </select>
-                  </div>
-                )}
 
                 {/* Links */}
                 <div className="grid grid-cols-2 gap-3">
@@ -607,27 +609,32 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">
-                      Creative
-                      {form.adFormat === 'carousel' && (
-                        <span className="text-muted-foreground font-normal"> (2–10 cards)</span>
-                      )}
-                    </label>
-                    <CreativeInput
-                      value={form.creativeLink}
-                      onChange={(v) => set('creativeLink', v)}
-                      multiple={form.adFormat === 'carousel'}
-                    />
+                {/* Creative gets its own row: it's the tallest control on the
+                    tab, and pairing it with a one-line input left a dead gap
+                    beside it. */}
+                <div>
+                  <label className="text-xs font-medium block mb-1.5">
+                    Creative
                     {form.adFormat === 'carousel' && (
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        {assetCount === 0
-                          ? 'Add 2–10 cards.'
-                          : `${assetCount} card${assetCount !== 1 ? 's' : ''}${assetCount < 2 ? ' — a carousel needs at least 2' : ''}`}
-                      </p>
+                      <span className="text-muted-foreground font-normal"> (2–10 cards)</span>
                     )}
-                  </div>
+                  </label>
+                  <CreativeInput
+                    value={form.creativeLink}
+                    onChange={(v) => set('creativeLink', v)}
+                    multiple={form.adFormat === 'carousel'}
+                  />
+                  {form.adFormat === 'carousel' && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {assetCount === 0
+                        ? 'Add 2–10 cards.'
+                        : `${assetCount} card${assetCount !== 1 ? 's' : ''}${assetCount < 2 ? ' — a carousel needs at least 2' : ''}`}
+                    </p>
+                  )}
+                </div>
+
+                {/* Two single-line link fields, so the row heights match */}
+                <div className="grid grid-cols-2 gap-3 items-start">
                   <div>
                     <label className="text-xs font-medium block mb-1.5">Frame.io Link</label>
                     <input value={form.frameioLink} onChange={(e) => set('frameioLink', e.target.value)}
@@ -635,21 +642,21 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Final Deliverable</label>
-                  <div className="flex gap-2">
-                    <input value={form.finalDeliverable} onChange={(e) => set('finalDeliverable', e.target.value)}
-                      placeholder="Finished asset — used when launching to Meta"
-                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                    {form.finalDeliverable && (
-                      <a href={form.finalDeliverable} target="_blank" rel="noreferrer"
-                        title="View creative"
-                        className="border border-border rounded-lg px-3 py-2 text-muted-foreground hover:text-primary hover:border-primary transition-colors flex items-center">
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    )}
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Final Deliverable</label>
+                    <div className="flex gap-2">
+                      <input value={form.finalDeliverable} onChange={(e) => set('finalDeliverable', e.target.value)}
+                        placeholder="Finished asset link"
+                        className="flex-1 min-w-0 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      {form.finalDeliverable && (
+                        <a href={form.finalDeliverable} target="_blank" rel="noreferrer"
+                          title="View creative"
+                          className="border border-border rounded-lg px-3 py-2 text-muted-foreground hover:text-primary hover:border-primary transition-colors flex items-center flex-shrink-0">
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </>

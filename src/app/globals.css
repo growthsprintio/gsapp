@@ -128,4 +128,47 @@
   html {
     @apply font-sans;
   }
+
+
+}
+
+/* Native select chevrons sit hard against the right border and differ per
+   browser. Draw our own, inset from the edge, matching the lucide chevron
+   used elsewhere so every dropdown in the app looks like the same control. */
+/* :not([multiple]) is here for specificity, not filtering — :not() inherits
+   its argument's weight, so (0,1,1) beats Tailwind's px-3 (0,1,0) and the
+   padding-right actually applies. */
+select:not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 0.9rem;
+  padding-right: 2.1rem;
+}
+
+/* Leave multi/size selects alone — they have no chevron to replace. */
+select[multiple],
+select[size]:not([size="1"]) {
+  appearance: auto;
+  -webkit-appearance: auto;
+  background-image: none;
+  padding-right: 0.75rem;
+}
+
+/* Tailwind v4's reset sets buttons to cursor: default. Every interactive
+   control should say it's clickable. Unlayered so it beats the utilities
+   layer, same reason as the select rule above. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+select:not([multiple]):not(:disabled),
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
 }
