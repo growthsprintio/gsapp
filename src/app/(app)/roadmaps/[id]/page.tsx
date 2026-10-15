@@ -4,7 +4,8 @@ import { useAppStore } from '@/lib/store';
 import { STATUS_CONFIG, type CreativeStatus, type RoadmapItem } from '@/lib/types';
 import { FORMAT_OPTIONS } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { use, useState } from 'react';
+import { use, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, ArrowLeft, Zap, ExternalLink, ChevronDown, Pencil, Trash2, Image as ImageIcon, CheckSquare, Square } from 'lucide-react';
 import Link from 'next/link';
 import { BriefDrawer } from '@/components/brief-drawer';
@@ -55,6 +56,35 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
   const updateItemStatus = useAppStore((s) => s.updateItemStatus);
   const deleteItem = useAppStore((s) => s.deleteItem);
   const [menu, setMenu] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+
+  // Position the portalled menu from the trigger, flipping up near the
+  // viewport bottom so the last row's menu stays on screen. Any scroll or
+  // resize closes it rather than leaving it stranded mid-page.
+  useEffect(() => {
+    if (!menu) { setMenuPos(null); return; }
+
+    const place = () => {
+      const r = triggerRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const MENU_H = 180;
+      const below = window.innerHeight - r.bottom;
+      setMenuPos({
+        top: below < MENU_H ? Math.max(8, r.top - MENU_H - 4) : r.bottom + 4,
+        left: Math.min(r.left, window.innerWidth - 160),
+      });
+    };
+    place();
+
+    const close = () => setMenu(false);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [menu]);
   const cfg = STATUS_CONFIG[item.status];
   // Anything interactive stops the row-level click that opens the brief.
   const stop = (e: React.MouseEvent) => e.stopPropagation();
@@ -84,17 +114,24 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
         </div>
       </td>
       <td className="px-4 py-3" onClick={stop}>
-        {/* Quick status update */}
-        <div className="relative inline-block">
-          <button onClick={() => setMenu(!menu)}
+        {/* Quick status update.
+            The menu is portalled to <body> and positioned from the trigger's
+            rect: the table scrolls inside overflow-x-auto nested in an
+            overflow-hidden card, and an absolutely positioned menu gets
+            clipped by both. Setting overflow on one axis makes the other
+            compute to auto, so it was cut off vertically too. */}
+        <div className="inline-block">
+          <button ref={triggerRef} onClick={() => setMenu(!menu)}
             className={cn('flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full transition-opacity hover:opacity-80', cfg.bg, cfg.color)}>
             {cfg.label}
             <ChevronDown className="w-3 h-3 opacity-70" />
           </button>
-          {menu && (
+          {menu && menuPos && createPortal(
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
-              <div className="absolute left-0 top-full mt-1 z-20 bg-popover border border-border rounded-xl shadow-lg py-1 min-w-36 overflow-hidden">
+              <div className="fixed inset-0 z-[60]" onClick={() => setMenu(false)} />
+              <div
+                style={{ top: menuPos.top, left: menuPos.left }}
+                className="fixed z-[61] bg-popover border border-border rounded-xl shadow-lg py-1 min-w-36 overflow-hidden">
                 {COLUMNS.map((col) => (
                   <button key={col.status}
                     onClick={() => { updateItemStatus(roadmapId, item.id, col.status); setMenu(false); }}
@@ -107,7 +144,8 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
                   </button>
                 ))}
               </div>
-            </>
+            </>,
+            document.body,
           )}
         </div>
       </td>
@@ -275,7 +313,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
             </div>
             <h1 className="text-2xl font-bold">{roadmap.name}</h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-              Every creative in this roadmap, from idea to launched. Drag cards on the board below to move them through the pipeline.
+              Every creative in this roadmap, from idea to launched. Change a status from the table below to move one through the pipeline.
             </p>
           </div>
           <button onClick={openNew}
