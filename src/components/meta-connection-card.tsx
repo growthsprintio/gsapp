@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Check, AlertCircle, Link2, Unlink, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BrandIcon } from '@/components/brand-icon';
 
 interface Assets {
   adAccounts: { id: string; name: string; currency: string; status: number }[];
@@ -159,7 +160,7 @@ export function MetaConnectionCard() {
     <div className="bg-card border border-border rounded-xl p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center text-lg flex-shrink-0">⚡</div>
+          <BrandIcon brand="meta" />
           <div className="min-w-0">
             <p className="text-sm font-medium">Meta Ads Manager</p>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">

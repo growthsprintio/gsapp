@@ -5,6 +5,7 @@ import { useAppStore } from '@/lib/store';
 import { Save, Building2, Zap, Bell, Tag, Plus, Trash2, Wand2, Check, AlertCircle, Workflow, MessageSquare, Clapperboard, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MetaConnectionCard } from '@/components/meta-connection-card';
+import { BrandIcon } from '@/components/brand-icon';
 import { applyNamingConvention, DEFAULT_NAMING_CONVENTION, READABLE_NAMING_CONVENTION } from '@/lib/utils';
 import type { NamingConvention, NamingVariable, NamingStyle } from '@/lib/types';
 import { NAMING_SEPARATORS } from '@/lib/types';
@@ -705,15 +706,13 @@ export default function SettingsPage() {
             <div className="space-y-3">
               <MetaConnectionCard />
               {[
-                { name: 'Frame.io', desc: 'Sync review and approval status automatically', connected: false, Icon: Clapperboard, tone: 'text-[#1E7BF3] bg-[#1E7BF3]/10' },
-                { name: 'Slack', desc: 'Get notified when status changes in your pipeline', connected: false, Icon: MessageSquare, tone: 'text-[#4A154B] bg-[#4A154B]/10' },
-                { name: 'Motion', desc: 'Pull performance data into your creative workflow', connected: false, Icon: BarChart3, tone: 'text-foreground bg-secondary' },
-              ].map(({ name, desc, connected, Icon, tone }) => (
+                { name: 'Frame.io', brand: 'frameio', desc: 'Sync review and approval status automatically', connected: false },
+                { name: 'Slack', brand: 'slack', desc: 'Get notified when status changes in your pipeline', connected: false },
+                { name: 'Motion', brand: 'motion', desc: 'Pull performance data into your creative workflow', connected: false },
+              ].map(({ name, brand, desc, connected }) => (
                 <div key={name} className="bg-card border border-border rounded-xl p-5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', tone)}>
-                      <Icon className="w-4.5 h-4.5" />
-                    </div>
+                    <BrandIcon brand={brand} />
                     <div>
                       <p className="text-sm font-medium">{name}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
