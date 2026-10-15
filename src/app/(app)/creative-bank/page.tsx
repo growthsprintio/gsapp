@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/lib/store';
-import { AssetDrop } from '@/components/asset-drop';
+import { CreativeInput } from '@/components/asset-drop';
 import { useState } from 'react';
 import { Plus, Copy, Check, Link2, ExternalLink, Trash2, LayoutGrid, List, Clapperboard } from 'lucide-react';
 import { FORMAT_OPTIONS, type CreativeBankEntry, type AdFormat } from '@/lib/types';
@@ -161,17 +161,14 @@ export default function CreativeBankPage() {
           </div>
           <div>
             <label className="text-xs font-medium block mb-1.5">Creative *</label>
-            <AssetDrop
-              onUploaded={(urls) => setForm((f) => ({ ...f, url: urls[0], title: f.title || urls[0].split('/').pop() || '' }))}
+            <CreativeInput
+              value={form.url}
+              onChange={(url) => setForm((f) => ({
+                ...f,
+                url,
+                title: f.title || (url.split('/').pop() || '').replace(/-[a-z0-9]+\.[a-z0-9]+$/i, '') || '',
+              }))}
             />
-            <p className="text-[11px] text-muted-foreground my-2 text-center">or paste a link</p>
-            <input required type="url" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })}
-              placeholder="https://…/creative.jpg"
-              className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Uploaded files are hosted for you and always preview. Pasted links only preview if they point straight at an image — Google Drive share links do not.
-            </p>
           </div>
           <div>
             <label className="text-xs font-medium block mb-1.5">Tags (comma-separated)</label>

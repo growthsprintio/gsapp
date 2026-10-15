@@ -10,7 +10,7 @@ import {
 import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef } from 'react';
-import { AssetDrop } from '@/components/asset-drop';
+import { CreativeInput } from '@/components/asset-drop';
 
 const DEFAULT_ANGLES = ['Pain Point', 'Social Proof', 'Hook', 'Curiosity', 'Urgency', 'Lifestyle', 'Before/After', 'Tutorial', 'Comparison', 'Testimonial', 'UGC Raw', 'Founder Story'];
 
@@ -610,41 +610,20 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium block mb-1.5">
-                      Creative Link
+                      Creative
                       {form.adFormat === 'carousel' && (
-                        <span className="text-muted-foreground font-normal"> (one per line)</span>
+                        <span className="text-muted-foreground font-normal"> (2–10 cards)</span>
                       )}
                     </label>
-                    {form.adFormat === 'carousel' ? (
-                      <textarea value={form.creativeLink} onChange={(e) => set('creativeLink', e.target.value)}
-                        rows={3}
-                        placeholder={'https://…/card-1.jpg\nhttps://…/card-2.jpg'}
-                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none font-mono text-xs"
-                      />
-                    ) : (
-                      <input value={form.creativeLink} onChange={(e) => set('creativeLink', e.target.value)}
-                        placeholder="Paste a direct image URL…"
-                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    )}
-
-                    {/* Upload is the easy path; pasting a link still works above. */}
-                    <AssetDrop
-                      className="mt-2"
+                    <CreativeInput
+                      value={form.creativeLink}
+                      onChange={(v) => set('creativeLink', v)}
                       multiple={form.adFormat === 'carousel'}
-                      onUploaded={(urls) => {
-                        if (form.adFormat === 'carousel') {
-                          const existing = (form.creativeLink || '').split('\n').map((s) => s.trim()).filter(Boolean);
-                          set('creativeLink', [...existing, ...urls].join('\n'));
-                        } else {
-                          set('creativeLink', urls[0]);
-                        }
-                      }}
                     />
                     {form.adFormat === 'carousel' && (
                       <p className="text-[11px] text-muted-foreground mt-1">
                         {assetCount === 0
-                          ? 'Add 2–10 public image URLs, one per line.'
+                          ? 'Add 2–10 cards.'
                           : `${assetCount} card${assetCount !== 1 ? 's' : ''}${assetCount < 2 ? ' — a carousel needs at least 2' : ''}`}
                       </p>
                     )}
