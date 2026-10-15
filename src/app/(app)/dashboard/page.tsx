@@ -1,6 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/lib/store';
+import { useCurrentUser, useGreeting } from '@/lib/use-current-user';
 import { STATUS_CONFIG, type CreativeStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Rocket, ArrowRight, Plus, CalendarClock, Image as ImageIcon } from 'lucide-react';
@@ -20,7 +21,9 @@ const DAY = 86400000;
 export default function DashboardPage() {
   const allRoadmaps = useAppStore((s) => s.roadmaps);
   const currentAccountId = useAppStore((s) => s.currentAccountId);
-  const user = useAppStore((s) => s.user);
+  const user = useCurrentUser();
+  const greeting = useGreeting();
+  const firstName = user?.name?.split(/[\s.]/)[0] ?? '';
 
   const roadmaps = allRoadmaps.filter((r) => r.accountId === currentAccountId);
   const activeRoadmaps = roadmaps.filter((r) => r.status === 'active');
@@ -65,18 +68,20 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="px-8 py-8 max-w-6xl">
+    <div className="px-8 py-8 max-w-[1600px]">
       {/* Header */}
       <div className="mb-8">
         <p className="text-sm text-muted-foreground">{format(new Date(), 'EEEE, MMMM d')}</p>
-        <h1 className="text-2xl font-semibold mt-0.5">Good morning, {user?.name?.split(' ')[0]} —</h1>
+        <h1 className="text-2xl font-semibold mt-0.5">
+          {greeting}{firstName ? `, ${firstName}` : ''}
+        </h1>
         <p className="text-muted-foreground mt-1 text-sm">
           {activeRoadmaps.length} active roadmap{activeRoadmaps.length !== 1 ? 's' : ''} · {inProgress} creative in progress
         </p>
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {STATS.map(({ label, value, sub }) => (
           <div key={label} className="bg-card border border-border rounded-xl p-5">
             <p className="text-xs text-muted-foreground mb-2">{label}</p>
@@ -86,9 +91,11 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* Left: funnel + roadmaps */}
-        <div className="col-span-2 space-y-6">
+      {/* Three columns on wide screens so the page uses its width instead of
+          stacking a narrow strip down the left. */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        {/* Pipeline */}
+        <div className="xl:col-span-5">
           {/* Pipeline funnel */}
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
@@ -114,8 +121,10 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Recent roadmaps (3 most recent) */}
+        {/* Recent roadmaps (3 most recent) */}
+        <div className="xl:col-span-4">
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold">Recent Roadmaps</h2>
@@ -158,7 +167,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Right: Due next + Recently launched */}
-        <div className="space-y-6">
+        <div className="xl:col-span-3 space-y-6">
           {/* Due Next */}
           <div>
             <h2 className="text-sm font-semibold mb-4 flex items-center gap-1.5">
