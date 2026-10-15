@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { UploadCloud, Loader2, AlertCircle } from 'lucide-react';
+import { UploadCloud, Loader2, AlertCircle, Link2 as LinkIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -20,7 +20,36 @@ export function AssetDrop({ onUploaded, multiple = false, className }: {
   const [over, setOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [note, setNote] = useState('');
   const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [link, setLink] = useState('');
+  const [importing, setImporting] = useState(false);
+
+  // Import by link: fetch it once and host our own copy, so the creative no
+  // longer depends on the original host staying up.
+  const importLink = async () => {
+    const url = link.trim();
+    if (!url) return;
+    setError('');
+    setNote('');
+    setImporting(true);
+    try {
+      const res = await fetch('/api/upload/from-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Could not import that link.');
+      if (d.note) setNote(d.note);
+      setLink('');
+      onUploaded([d.url]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not import that link.');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const send = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -92,6 +121,25 @@ export function AssetDrop({ onUploaded, multiple = false, className }: {
         accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime"
         onChange={(e) => send(e.target.files)}
       />
+
+      {/* Import by link — the file ends up hosted either way. */}
+      <div className="flex gap-2 mt-2">
+        <input
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); importLink(); } }}
+          placeholder="…or paste an image link to import"
+          className="flex-1 min-w-0 border border-border rounded-lg px-3 py-1.5 text-xs bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+        <button type="button" onClick={importLink} disabled={!link.trim() || importing}
+          className="border border-border rounded-lg px-3 py-1.5 text-xs hover:bg-secondary transition-colors disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0">
+          {importing
+            ? <><Loader2 className="w-3 h-3 animate-spin" /> Importing…</>
+            : <><LinkIcon className="w-3 h-3" /> Import</>}
+        </button>
+      </div>
+
+      {note && <p className="text-[11px] text-muted-foreground mt-1.5">{note}</p>}
 
       {error && (
         <div className="flex items-start gap-1.5 mt-1.5">
