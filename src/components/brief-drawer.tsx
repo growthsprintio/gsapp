@@ -10,6 +10,7 @@ import {
 import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef } from 'react';
+import { AssetDrop } from '@/components/asset-drop';
 
 const DEFAULT_ANGLES = ['Pain Point', 'Social Proof', 'Hook', 'Curiosity', 'Urgency', 'Lifestyle', 'Before/After', 'Tutorial', 'Comparison', 'Testimonial', 'UGC Raw', 'Founder Story'];
 
@@ -622,10 +623,24 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                       />
                     ) : (
                       <input value={form.creativeLink} onChange={(e) => set('creativeLink', e.target.value)}
-                        placeholder="Drive / Dropbox..."
+                        placeholder="Paste a direct image URL…"
                         className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                     )}
+
+                    {/* Upload is the easy path; pasting a link still works above. */}
+                    <AssetDrop
+                      className="mt-2"
+                      multiple={form.adFormat === 'carousel'}
+                      onUploaded={(urls) => {
+                        if (form.adFormat === 'carousel') {
+                          const existing = (form.creativeLink || '').split('\n').map((s) => s.trim()).filter(Boolean);
+                          set('creativeLink', [...existing, ...urls].join('\n'));
+                        } else {
+                          set('creativeLink', urls[0]);
+                        }
+                      }}
+                    />
                     {form.adFormat === 'carousel' && (
                       <p className="text-[11px] text-muted-foreground mt-1">
                         {assetCount === 0

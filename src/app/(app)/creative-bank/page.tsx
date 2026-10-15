@@ -1,6 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/lib/store';
+import { AssetDrop } from '@/components/asset-drop';
 import { useState } from 'react';
 import { Plus, Copy, Check, Link2, ExternalLink, Trash2, LayoutGrid, List, Clapperboard } from 'lucide-react';
 import { FORMAT_OPTIONS, type CreativeBankEntry, type AdFormat } from '@/lib/types';
@@ -159,12 +160,18 @@ export default function CreativeBankPage() {
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium block mb-1.5">Link *</label>
+            <label className="text-xs font-medium block mb-1.5">Creative *</label>
+            <AssetDrop
+              onUploaded={(urls) => setForm((f) => ({ ...f, url: urls[0], title: f.title || urls[0].split('/').pop() || '' }))}
+            />
+            <p className="text-[11px] text-muted-foreground my-2 text-center">or paste a link</p>
             <input required type="url" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })}
-              placeholder="https://drive.google.com/… or a direct image URL"
+              placeholder="https://…/creative.jpg"
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <p className="text-[11px] text-muted-foreground mt-1">Direct image URLs get a preview thumbnail; other links show a link tile.</p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Uploaded files are hosted for you and always preview. Pasted links only preview if they point straight at an image — Google Drive share links do not.
+            </p>
           </div>
           <div>
             <label className="text-xs font-medium block mb-1.5">Tags (comma-separated)</label>

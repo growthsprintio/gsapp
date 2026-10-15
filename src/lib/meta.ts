@@ -194,6 +194,59 @@ export interface LaunchResult {
   adId: string;
 }
 
+/** Meta rejects anything larger; fail here with a readable message instead. */
+const MAX_IMAGE_BYTES = 30 * 1024 * 1024;
+
+/**
+ * Fetch a creative and hand the bytes to Meta's own image library, returning
+ * the hash to reference in link_data.
+ *
+ * Passing a `picture` URL instead makes Meta fetch it at ad-creation time, so
+ * the ad silently depends on that host still serving the file — Google Drive
+ * links 403 and rate-limit, which would fail the launch for reasons outside
+ * the app. Uploading once means Meta holds its own copy.
+ */
+export async function uploadAdImage(cfg: MetaConfig, sourceUrl: string): Promise<string> {
+  let res: Response;
+  try {
+    res = await fetch(sourceUrl);
+  } catch {
+    throw new Error(`Could not reach the creative at ${sourceUrl}`);
+  }
+  if (!res.ok) {
+    throw new Error(`Creative URL returned ${res.status}. It must be publicly reachable — Google Drive share links are not.`);
+  }
+
+  const type = (res.headers.get('content-type') || '').toLowerCase();
+  if (!type.startsWith('image/')) {
+    throw new Error(`That link returned ${type || 'no content type'}, not an image. Use a direct image URL or upload the file.`);
+  }
+
+  const buf = await res.arrayBuffer();
+  if (buf.byteLength > MAX_IMAGE_BYTES) {
+    throw new Error(`Creative is ${(buf.byteLength / 1024 / 1024).toFixed(1)}MB; Meta's limit is 30MB.`);
+  }
+
+  // Meta keys the response by filename and requires a real extension.
+  const ext = type.includes('png') ? 'png'
+    : type.includes('webp') ? 'webp'
+      : type.includes('gif') ? 'gif' : 'jpg';
+  const filename = `creative.${ext}`;
+
+  const form = new FormData();
+  form.append('access_token', cfg.token);
+  form.append(filename, new Blob([buf], { type }), filename);
+
+  const up = await fetch(graph(cfg, `${cfg.adAccountId}/adimages`), { method: 'POST', body: form });
+  const json = await up.json().catch(() => ({}));
+  if (!up.ok || json.error) throw toApiError(json, up.status);
+
+  const hash = json.images?.[filename]?.hash
+    ?? (Object.values(json.images || {})[0] as { hash?: string } | undefined)?.hash;
+  if (!hash) throw new Error('Meta accepted the upload but returned no image hash.');
+  return hash as string;
+}
+
 export async function launchToMeta(cfg: MetaConfig, p: LaunchPayload): Promise<LaunchResult> {
   if (!p.metaAdSetId) throw new Error('No ad set selected.');
 
@@ -210,15 +263,19 @@ export async function launchToMeta(cfg: MetaConfig, p: LaunchPayload): Promise<L
     throw new Error('Meta allows at most 10 carousel cards.');
   }
 
+  // Upload every asset to Meta first, so the ad references Meta-held images
+  // rather than depending on the original host staying up.
+  const hashes = await Promise.all(assets.slice(0, 10).map((url) => uploadAdImage(cfg, url)));
+
   const linkData: Record<string, unknown> = {
     link: p.landingPage,
     message: p.primaryText,
   };
 
   if (isCarousel) {
-    linkData.child_attachments = assets.slice(0, 10).map((picture) => ({
+    linkData.child_attachments = hashes.map((image_hash) => ({
       link: p.landingPage,
-      picture,
+      image_hash,
       name: p.headline,
       description: p.adDescription,
       ...(p.metaCTA ? { call_to_action: { type: p.metaCTA, value: { link: p.landingPage } } } : {}),
@@ -228,7 +285,7 @@ export async function launchToMeta(cfg: MetaConfig, p: LaunchPayload): Promise<L
   } else {
     linkData.name = p.headline;
     linkData.description = p.adDescription;
-    linkData.picture = assets[0];
+    linkData.image_hash = hashes[0];
   }
 
   if (p.metaCTA) linkData.call_to_action = { type: p.metaCTA, value: { link: p.landingPage } };
