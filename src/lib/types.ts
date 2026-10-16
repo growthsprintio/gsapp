@@ -190,16 +190,53 @@ export const META_OPTIMIZATION_GOALS: { value: string; label: string }[] = [
   { value: 'IMPRESSIONS', label: 'Impressions' },
 ];
 
+/**
+ * Call-to-action buttons for website link ads.
+ *
+ * Meta's full enum runs past 100 values, but most are for app installs,
+ * Messenger, gaming or live video and are invalid on a link ad — offering them
+ * would just produce rejected launches. This is the subset that applies to the
+ * link_data creatives this app builds.
+ *
+ * Note BOOK_NOW, not BOOK_TRAVEL: the previous list labelled the travel-only
+ * value "Book Now", which would have set the wrong button on non-travel ads.
+ */
 export const META_CTAS: { value: string; label: string }[] = [
   { value: 'SHOP_NOW', label: 'Shop Now' },
   { value: 'LEARN_MORE', label: 'Learn More' },
   { value: 'SIGN_UP', label: 'Sign Up' },
   { value: 'SUBSCRIBE', label: 'Subscribe' },
-  { value: 'GET_OFFER', label: 'Get Offer' },
+  { value: 'BUY_NOW', label: 'Buy Now' },
   { value: 'ORDER_NOW', label: 'Order Now' },
-  { value: 'BOOK_TRAVEL', label: 'Book Now' },
+  { value: 'ADD_TO_CART', label: 'Add to Cart' },
+  { value: 'GET_OFFER', label: 'Get Offer' },
+  { value: 'GET_PROMOTIONS', label: 'Get Promotions' },
+  { value: 'BOOK_NOW', label: 'Book Now' },
+  { value: 'MAKE_AN_APPOINTMENT', label: 'Make an Appointment' },
+  { value: 'BOOK_A_CONSULTATION', label: 'Book a Consultation' },
+  { value: 'REQUEST_TIME', label: 'Request Time' },
+  { value: 'APPLY_NOW', label: 'Apply Now' },
+  { value: 'GET_QUOTE', label: 'Get Quote' },
+  { value: 'GET_STARTED', label: 'Get Started' },
+  { value: 'TRY_DEMO', label: 'Try Demo' },
   { value: 'DOWNLOAD', label: 'Download' },
   { value: 'CONTACT_US', label: 'Contact Us' },
+  { value: 'GET_IN_TOUCH', label: 'Get in Touch' },
+  { value: 'INQUIRE_NOW', label: 'Inquire Now' },
+  { value: 'SEE_MORE', label: 'See More' },
+  { value: 'FIND_OUT_MORE', label: 'Find Out More' },
+  { value: 'VISIT_WEBSITE', label: 'Visit Website' },
+  { value: 'SEE_SHOP', label: 'See Shop' },
+  { value: 'VIEW_PRODUCT', label: 'View Product' },
+  { value: 'WATCH_MORE', label: 'Watch More' },
+  { value: 'LISTEN_NOW', label: 'Listen Now' },
+  { value: 'PLAY_GAME', label: 'Play Game' },
+  { value: 'GET_DIRECTIONS', label: 'Get Directions' },
+  { value: 'BUY_TICKETS', label: 'Buy Tickets' },
+  { value: 'GET_SHOWTIMES', label: 'Get Showtimes' },
+  { value: 'PURCHASE_GIFT_CARDS', label: 'Purchase Gift Cards' },
+  { value: 'DONATE_NOW', label: 'Donate Now' },
+  { value: 'NO_BUTTON', label: 'No Button' },
 ];
 
 export const META_PLACEMENTS: { value: string; label: string }[] = [

@@ -7,7 +7,7 @@ import {
   FORMAT_OPTIONS, SIZE_OPTIONS, type RoadmapItem, type AdFormat,
   META_CTAS,
 } from '@/lib/types';
-import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle } from 'lucide-react';
+import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef } from 'react';
 import { CreativeInput } from '@/components/asset-drop';
@@ -352,6 +352,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const assetUrls = (form.creativeLink || '')
     .split(/[\n,]+/).map((s) => s.trim()).filter((s) => /^https?:\/\//i.test(s));
   const assetCount = assetUrls.length;
+  const previewAsset = assetUrls[0];
   const creativeReady = form.adFormat === 'carousel'
     ? assetCount >= 2 && assetCount <= 10
     : assetCount >= 1;
@@ -439,7 +440,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
               className={`flex-1 text-xs py-2.5 font-medium border-b-2 -mb-px transition-colors capitalize ${
                 tab === t ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}>
-              {t === 'launch' ? 'Launch Setup' : t === 'copy' ? 'Ad Copy' : 'Brief'}
+              {t === 'launch' ? 'Launch Setup' : t === 'copy' ? 'Ad Setup' : 'Brief'}
             </button>
           ))}
         </div>
@@ -721,6 +722,10 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
+                {/* ── Destination ── */}
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-2 border-t border-border">
+                  Destination
+                </p>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-medium">Landing Page</label>
@@ -730,6 +735,17 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     placeholder="https://brand.com/product"
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
                   />
+                  <p className="text-[11px] text-muted-foreground mt-1">Where the ad sends people. Set once — Launch Setup reads it from here.</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium block mb-1.5">Call to Action</label>
+                  <select value={form.metaCTA} onChange={(e) => set('metaCTA', e.target.value)}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                    <option value="">Select CTA</option>
+                    {META_CTAS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                  <p className="text-[11px] text-muted-foreground mt-1">The button on the ad.</p>
                 </div>
               </>
             )}
@@ -857,23 +873,48 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 )}
 
                 {/* ── Ad / Creative ── */}
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Ad</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Call to Action</label>
-                    <select value={form.metaCTA} onChange={(e) => set('metaCTA', e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                      <option value="">Select CTA</option>
-                      {META_CTAS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                    </select>
+                {/* ── What will go live ──
+                    Read-only on purpose: copy, landing page and CTA are owned
+                    by Ad Setup. Having editable duplicates here meant two
+                    fields for one value, with no clue which one won. */}
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Preview</p>
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <div className="flex gap-3 p-3">
+                    {previewAsset ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={previewAsset} alt="" className="w-20 h-20 rounded-md object-cover bg-secondary flex-shrink-0"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+                    ) : (
+                      <div className="w-20 h-20 rounded-md bg-secondary flex items-center justify-center flex-shrink-0">
+                        <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-foreground line-clamp-2">
+                        {form.primaryText || <span className="text-muted-foreground italic">No primary text yet</span>}
+                      </p>
+                      <p className="text-sm font-semibold mt-1.5">
+                        {form.headline || <span className="text-muted-foreground font-normal italic">No headline yet</span>}
+                      </p>
+                      {form.adDescription && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{form.adDescription}</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Landing Page URL</label>
-                    <input value={form.landingPage} onChange={(e) => set('landingPage', e.target.value)}
-                      placeholder="https://brand.com/product"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
+                  <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-t border-border">
+                    <p className="text-[11px] text-muted-foreground font-mono truncate flex-1 min-w-0">
+                      {form.landingPage || 'No landing page set'}
+                    </p>
+                    <span className="text-[10px] font-semibold bg-secondary border border-border rounded px-2 py-1 flex-shrink-0">
+                      {META_CTAS.find((c) => c.value === form.metaCTA)?.label ?? 'No CTA'}
+                    </span>
                   </div>
+                  {(!form.landingPage || !form.metaCTA || !form.primaryText || !form.headline) && (
+                    <button type="button" onClick={() => setTab('copy')}
+                      className="w-full text-[11px] text-primary px-3 py-2 border-t border-border hover:bg-muted/30 transition-colors text-left">
+                      Finish this in Ad Setup →
+                    </button>
+                  )}
                 </div>
 
                 {/* ── Readiness checklist ── */}
