@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
-import { applyNamingConvention, getCustomVariables } from '@/lib/utils';
+import { applyNamingConvention, getBriefVariables } from '@/lib/utils';
 import {
   FORMAT_OPTIONS, SIZE_OPTIONS, type RoadmapItem, type AdFormat,
   META_CTAS,
@@ -198,7 +198,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const [form, setForm] = useState<typeof EMPTY>({ ...EMPTY });
   const [tab, setTab] = useState<'brief' | 'copy' | 'launch'>('brief');
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
-  const customVars = getCustomVariables(namingConvention);
+  const customVars = getBriefVariables(namingConvention);
   const [metaConfigured, setMetaConfigured] = useState<boolean | null>(null);
   const [metaAccount, setMetaAccount] = useState<string | null>(null);
   const [adSets, setAdSets] = useState<{ id: string; name: string; status: string; campaignId: string; campaignName: string }[]>([]);
@@ -313,6 +313,9 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     } else {
       setForm({ ...EMPTY });
     }
+    // Hydrate from the item — without this, values carried over from whichever
+    // brief was opened before.
+    setCustomValues(editItem?.variables ?? {});
     setTab('brief');
     setNameEdited(!!editItem?.adName);
     setNameIndex(Math.floor(Math.random() * 99) + 1);
@@ -408,10 +411,13 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // customValues was component state only — variable values were lost on
+    // close, so reopening a brief regenerated a different ad name.
+    const payload = { ...form, variables: customValues } as Partial<RoadmapItem>;
     if (editItem) {
-      updateItem(roadmapId, editItem.id, form as Partial<RoadmapItem>);
+      updateItem(roadmapId, editItem.id, payload);
     } else {
-      addItem(roadmapId, { ...form, status: 'idea' });
+      addItem(roadmapId, { ...payload, status: 'idea' } as Parameters<typeof addItem>[1]);
     }
     onClose();
   };
@@ -442,29 +448,48 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
           <div className="px-6 py-5 space-y-4">
             {tab === 'brief' && (
               <>
-                {/* Custom Identifiers */}
+                {/* One field per naming variable, straight from the convention.
+                    A variable added in Settings shows up here on its own —
+                    the brief and the convention can't drift apart. */}
                 {customVars.length > 0 && (
                   <div>
-                    <label className="text-xs font-medium block mb-1.5">Custom Identifiers</label>
+                    <label className="text-xs font-medium block mb-1.5">Variables</label>
                     <div className={`grid gap-2 ${customVars.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                      {customVars.map((v) => (
-                        <div key={v.key}>
-                          <label className="text-[11px] text-muted-foreground block mb-1">{v.label}</label>
-                          <select
-                            value={customValues[v.key] || ''}
-                            onChange={(e) => setCustom(v.key, e.target.value)}
-                            className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                            <option value="">Select {v.label.toLowerCase()}...</option>
-                            {v.values?.map((opt: { match: string; output: string }) => (
-                              <option key={opt.match} value={opt.match}>
-                                {opt.match} → {opt.output}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
+                      {customVars.map((v) => {
+                        const options = v.values ?? [];
+                        return (
+                          <div key={v.key}>
+                            <label className="text-[11px] text-muted-foreground block mb-1">
+                              {v.label}
+                              {v.prefix && <span className="font-mono ml-1 opacity-60">{v.prefix}</span>}
+                            </label>
+                            {options.length > 0 ? (
+                              <select
+                                value={customValues[v.key] || ''}
+                                onChange={(e) => setCustom(v.key, e.target.value)}
+                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                                <option value="">Select {v.label.toLowerCase()}…</option>
+                                {options.map((opt: { match: string; output: string }) => (
+                                  <option key={opt.match} value={opt.match}>{opt.match}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              // No predefined list — free text, so a brand new
+                              // variable is usable the moment it's created.
+                              <input
+                                value={customValues[v.key] || ''}
+                                onChange={(e) => setCustom(v.key, e.target.value)}
+                                placeholder={v.label}
+                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">Set in Settings → Naming convention.</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      These feed the ad name. Add or change them in Settings → Naming.
+                    </p>
                   </div>
                 )}
 

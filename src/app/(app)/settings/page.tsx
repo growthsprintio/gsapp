@@ -77,9 +77,12 @@ function NamingConventionBuilder() {
   const addVariable = () => {
     const existing = variables.map((v) => v.key);
     const nextKey = 'abcdefghijklmnopqrstuvwxyz'.split('').find((k) => !existing.includes(k) && k !== '#') || 'x';
+    // No starting options: an empty list renders as a free-text field in the
+    // brief, so a new variable is usable immediately. Adding options later
+    // turns it into a dropdown.
     const newVar = {
-      key: nextKey, label: '', source: 'custom' as const, fallback: '', maxLength: 8,
-      values: [{ match: '', output: '' }],
+      key: nextKey, label: `Variable ${variables.length + 1}`, source: 'custom' as const,
+      fallback: '', maxLength: 8, values: [],
     };
     setVariables([...variables, newVar]);
     setEditingVar(nextKey);

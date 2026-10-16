@@ -52,6 +52,13 @@ export const DEFAULT_NAMING_CONVENTION: NamingConvention = {
     { key: 'c', label: 'Concept', source: 'field', field: 'concept', fallback: '', maxLength: 10, values: [] },
     { key: 'p', label: 'Product', source: 'field', field: 'product', fallback: '', maxLength: 8, values: [] },
     { key: 'pc', label: 'Product Category', source: 'field', field: 'productCategory', fallback: '', maxLength: 8, values: [] },
+    // Presets without a dedicated column — they live in item.variables and the
+    // brief renders a field for each automatically.
+    { key: 'pe', label: 'Persona', source: 'custom', fallback: '', maxLength: 8, values: [] },
+    { key: 'h', label: 'Hook', source: 'custom', fallback: '', maxLength: 10, values: [] },
+    { key: 'i', label: 'Influencer', source: 'custom', fallback: '', maxLength: 10, values: [] },
+    { key: 'o', label: 'Offer', source: 'custom', fallback: '', maxLength: 10, values: [] },
+    { key: 'lp', label: 'Landing Page', source: 'custom', fallback: '', maxLength: 12, values: [] },
     { key: '#', label: 'Index', source: 'custom', fallback: '001', values: [] },
   ],
 };
@@ -74,8 +81,13 @@ export const READABLE_NAMING_CONVENTION: NamingConvention = {
   // and inventing a meaning for them would defeat the point of a convention.
   formula: '{f}{sep}{c}{sep}{p}{sep}{a}{sep}{#}',
   variables: DEFAULT_NAMING_CONVENTION.variables.map((v) => {
+    // af:, f:, p: and a: come from the 9/29 example; i:, o: and lp: were
+    // confirmed on 10/15 as influencer, offer and landing page. pe: and h:
+    // follow the same shape but were never stated — change them if Chris
+    // meant something else.
     const prefix: Record<string, string> = {
       f: 'af:', c: 'f:', p: 'p:', pc: 'pc:', a: 'a:', s: 's:', b: 'b:',
+      i: 'i:', o: 'o:', lp: 'lp:', pe: 'pe:', h: 'h:',
     };
 
     // Shortcode mappings are a compact-style device — keeping them here would
@@ -120,6 +132,9 @@ export function applyNamingConvention(
     let raw = '';
     if (extra?.customValues?.[v.key]) {
       raw = extra.customValues[v.key];
+    } else if (item.variables?.[v.key]) {
+      // Stored on the item, so names resolve outside the open drawer too.
+      raw = item.variables[v.key];
     } else if (v.key === 'b') {
       raw = extra?.brand || v.fallback;
     } else if (v.source === 'field' && v.field) {
@@ -159,9 +174,21 @@ export function applyNamingConvention(
   return result.trim();
 }
 
-export function getCustomVariables(convention: NamingConvention): NamingVariable[] {
-  return convention.variables.filter(
-    (v) => v.source === 'custom' && v.key !== '#' && v.key !== 'b' && (v.values?.length ?? 0) > 0
-  );
+/** Keys the app computes rather than asking the user for. */
+const COMPUTED_KEYS = new Set(['#', 'b']);
+
+/**
+ * Every variable the brief has to collect a value for.
+ *
+ * This is what makes a convention and a brief the same thing: anything a
+ * workspace adds in Settings appears in the brief, instead of silently having
+ * nowhere to be filled in. Previously only variables that already carried a
+ * list of options were shown, so a newly added variable was unreachable.
+ */
+export function getBriefVariables(convention: NamingConvention): NamingVariable[] {
+  return convention.variables.filter((v) => v.source === 'custom' && !COMPUTED_KEYS.has(v.key));
 }
+
+/** @deprecated use getBriefVariables — kept so older imports don't break. */
+export const getCustomVariables = getBriefVariables;
 

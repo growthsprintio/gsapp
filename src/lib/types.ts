@@ -40,6 +40,13 @@ export interface RoadmapItem {
   landingPage?: string;
   product?: string;
   productCategory?: string;
+  /**
+   * Values for naming variables that don't have a dedicated column — the
+   * presets like persona and hook, plus anything a workspace invents. Keyed by
+   * the variable's key, so adding a variable in Settings gives it somewhere to
+   * live without a schema change.
+   */
+  variables?: Record<string, string>;
   dueDate?: string;
   adLength?: string;
   assignee?: string;
