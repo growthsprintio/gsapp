@@ -91,6 +91,30 @@ function AdPreview({ form, asset }: {
   );
 }
 
+/**
+ * A real web link, normalised to https — or null.
+ *
+ * Prefixing https:// onto anything and letting URL parse it accepted junk:
+ * "1" becomes https://1, which WHATWG URL reads as the IPv4 shorthand
+ * 0.0.0.1. So require a dotted hostname that isn't just digits, which also
+ * rules out bare IPs — nobody's inspiration lives at one.
+ */
+function toWebLink(input: string): string | null {
+  const s = input.trim();
+  if (!s) return null;
+  const withScheme = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+  try {
+    const u = new URL(withScheme);
+    const host = u.hostname;
+    if (!host.includes('.')) return null;           // "localhost", "hello"
+    if (/^[\d.]+$/.test(host)) return null;         // "1" → 0.0.0.1, raw IPs
+    if (!/\.[a-z]{2,}$/i.test(host)) return null;   // needs a real TLD
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
 /** "instagram.com/p/Cx9…" — enough to tell links apart at a glance. */
 function shortLink(url: string) {
   try {
@@ -118,16 +142,33 @@ function LinkChips({ value, onChange, placeholder }: {
   placeholder: string;
 }) {
   const [draft, setDraft] = useState('');
-  const links = value.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  const [error, setError] = useState('');
+  // Skip anything stored that isn't a real link — including the 0.0.0.N
+  // entries the old parser let through. They drop out of storage on the next
+  // change, so affected briefs clean themselves up.
+  const links = value.split(/\n+/).map((s) => s.trim()).filter((s) => !!toWebLink(s));
 
   const add = (raw: string) => {
     // Several pasted at once — one per line or space-separated — all land.
-    const incoming = raw.split(/[\s\n]+/).map((s) => s.trim()).filter(Boolean)
-      .map((s) => (/^https?:\/\//i.test(s) ? s : `https://${s}`));
+    const parts = raw.split(/[\s\n]+/).map((s) => s.trim()).filter(Boolean);
+    const valid = parts.map(toWebLink).filter((u): u is string => !!u);
+    const rejected = parts.length - valid.length;
+
     const next = [...links];
-    for (const url of incoming) if (!next.includes(url)) next.push(url);
+    for (const url of valid) if (!next.includes(url)) next.push(url);
     if (next.length !== links.length) onChange(next.join('\n'));
-    setDraft('');
+
+    if (rejected > 0) {
+      // Keep what was typed so it can be corrected, rather than losing it.
+      setError(valid.length
+        ? `Added ${valid.length}; skipped ${rejected} that ${rejected === 1 ? "isn't a" : "aren't"} web link${rejected === 1 ? '' : 's'}.`
+        : "That doesn't look like a web link — try something like instagram.com/p/…");
+      if (valid.length === 0) setDraft(raw.trim());
+      else setDraft('');
+    } else {
+      setError('');
+      setDraft('');
+    }
   };
 
   const remove = (url: string) => onChange(links.filter((l) => l !== url).join('\n'));
@@ -152,7 +193,7 @@ function LinkChips({ value, onChange, placeholder }: {
       )}
       <input
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => { setDraft(e.target.value); if (error) setError(''); }}
         onPaste={(e) => {
           const text = e.clipboardData.getData('text');
           if (text.trim()) { e.preventDefault(); add(text); }
@@ -160,8 +201,10 @@ function LinkChips({ value, onChange, placeholder }: {
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(draft); } }}
         onBlur={() => { if (draft.trim()) add(draft); }}
         placeholder={links.length ? 'Add another link' : placeholder}
-        className={GHOST}
+        aria-invalid={!!error}
+        className={cn(GHOST, error && 'border-amber-500/60')}
       />
+      {error && <p className="text-[11px] text-amber-700 mt-1 px-2">{error}</p>}
     </div>
   );
 }
