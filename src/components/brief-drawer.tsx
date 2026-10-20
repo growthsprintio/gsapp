@@ -175,7 +175,7 @@ const EMPTY = {
   description: '', primaryText: '', headline: '', adDescription: '',
   inspirationLink: '', creativeLink: '', frameioLink: '', landingPage: '',
   referenceCreative: '', finalDeliverable: '',
-  product: '', productCategory: '', dueDate: '', adLength: '',
+  product: '', productCategory: '', assignee: '', dueDate: '', adLength: '',
   // Meta launch config — ads launch into EXISTING campaigns/ad sets
   metaCampaignId: '', metaAdSetId: '', metaCTA: '',
 };
@@ -209,6 +209,22 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const [dupOpen, setDupOpen] = useState(false);
   const [dupName, setDupName] = useState('');
   const [dupState, setDupState] = useState<'idle' | 'working'>('idle');
+  // Suggestions for the Owner field — typing a name still works if the team
+  // call fails or Supabase isn't configured.
+  const [teamOwners, setTeamOwners] = useState<string[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    fetch('/api/team')
+      .then((r) => r.json())
+      .then((d) => {
+        const names = (d?.members ?? [])
+          .map((m: { name?: string; email?: string }) => m.name || m.email || '')
+          .filter(Boolean);
+        setTeamOwners(names);
+      })
+      .catch(() => {});
+  }, [open]);
+
   const [campaignCount, setCampaignCount] = useState<number | null>(null);
   const [adAccountId, setAdAccountId] = useState<string | null>(null);
   const [launchState, setLaunchState] = useState<'idle' | 'launching' | 'done' | 'error'>('idle');
@@ -304,6 +320,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
         landingPage: editItem.landingPage || '',
         product: editItem.product || '',
         productCategory: editItem.productCategory || '',
+        assignee: editItem.assignee || '',
         dueDate: editItem.dueDate || '',
         adLength: editItem.adLength || '',
         metaCampaignId: editItem.metaCampaignId || '',
@@ -317,8 +334,11 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     // brief was opened before.
     setCustomValues(editItem?.variables ?? {});
     setTab('brief');
-    setNameEdited(!!editItem?.adName);
-    setNameIndex(Math.floor(Math.random() * 99) + 1);
+    // Only an explicitly hand-written name stops the rebuild. Treating any
+    // existing name as custom meant editing a saved brief never updated it.
+    setNameEdited(!!editItem?.adNameCustom);
+    // Reuse the saved index so reopening a brief doesn't renumber the ad.
+    setNameIndex(editItem?.nameIndex ?? Math.floor(Math.random() * 99) + 1);
   }, [editItem, open]);
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -414,7 +434,12 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     e.preventDefault();
     // customValues was component state only — variable values were lost on
     // close, so reopening a brief regenerated a different ad name.
-    const payload = { ...form, variables: customValues } as Partial<RoadmapItem>;
+    const payload = {
+      ...form,
+      variables: customValues,
+      adNameCustom: nameEdited,
+      nameIndex,
+    } as Partial<RoadmapItem>;
     if (editItem) {
       updateItem(roadmapId, editItem.id, payload);
     } else {
@@ -457,7 +482,10 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     <label className="text-xs font-medium block mb-1.5">Variables</label>
                     <div className={`grid gap-2 ${customVars.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                       {customVars.map((v) => {
-                        const options = v.values ?? [];
+                        // Older variables were seeded with a single blank
+                        // option, which rendered as an empty dropdown you
+                        // couldn't type into. Blank entries don't count.
+                        const options = (v.values ?? []).filter((o) => o.match.trim());
                         return (
                           <div key={v.key}>
                             <label className="text-[11px] text-muted-foreground block mb-1">
@@ -598,6 +626,19 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 {/* Due Date pairs with Ad Length when the format has one, so it
                     isn't left sitting alone at half width. */}
                 <div className="grid grid-cols-2 gap-3 items-start">
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Owner</label>
+                    <input value={form.assignee} onChange={(e) => set('assignee', e.target.value)}
+                      list="brief-owners"
+                      placeholder="Who's making this?"
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    {/* The roadmap table has shown an Owner column all along,
+                        but nothing ever set it — every row read "Unassigned". */}
+                    <datalist id="brief-owners">
+                      {teamOwners.map((o) => <option key={o} value={o} />)}
+                    </datalist>
+                  </div>
                   <div>
                     <label className="text-xs font-medium block mb-1.5">Due Date</label>
                     <input type="date" value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)}

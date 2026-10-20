@@ -58,7 +58,9 @@ export const DEFAULT_NAMING_CONVENTION: NamingConvention = {
     { key: 'h', label: 'Hook', source: 'custom', fallback: '', maxLength: 10, values: [] },
     { key: 'i', label: 'Influencer', source: 'custom', fallback: '', maxLength: 10, values: [] },
     { key: 'o', label: 'Offer', source: 'custom', fallback: '', maxLength: 10, values: [] },
-    { key: 'lp', label: 'Landing Page', source: 'custom', fallback: '', maxLength: 12, values: [] },
+    // Reads the landing page from Ad Setup rather than asking for it again —
+    // as a 'custom' variable it rendered a second input for the same value.
+    { key: 'lp', label: 'Landing Page', source: 'field', field: 'landingPage', fallback: '', maxLength: 12, values: [] },
     { key: '#', label: 'Index', source: 'custom', fallback: '001', values: [] },
   ],
 };
@@ -217,7 +219,16 @@ const COMPUTED_KEYS = new Set(['#', 'b']);
  * list of options were shown, so a newly added variable was unreachable.
  */
 export function getBriefVariables(convention: NamingConvention): NamingVariable[] {
-  return convention.variables.filter((v) => v.source === 'custom' && !COMPUTED_KEYS.has(v.key));
+  return convention.variables.filter((v) =>
+    v.source === 'custom'
+    && !COMPUTED_KEYS.has(v.key)
+    // A variable the formula never references contributes nothing to the ad
+    // name, so asking for it is just a field people have to ignore.
+    && convention.formula.includes(`{${v.key}}`)
+    // Older variables could be saved with no label at all, which rendered as
+    // an anonymous "Select …" box.
+    && !!v.label.trim()
+  );
 }
 
 /** @deprecated use getBriefVariables — kept so older imports don't break. */

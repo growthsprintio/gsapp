@@ -247,6 +247,32 @@ export const useAppStore = create<AppState>()(
         const { user: _user, ...rest } = s;
         return rest as typeof s;
       },
+      /**
+       * The naming convention is persisted, so preset variables added to
+       * DEFAULT_NAMING_CONVENTION after a workspace was created never reached
+       * it — persona, hook, influencer and offer simply didn't appear, and the
+       * brief showed whatever stale variables were saved instead.
+       *
+       * Fold in any preset the stored convention is missing, matched by key,
+       * leaving the formula, separator, style and the workspace's own
+       * variables untouched.
+       */
+      merge: (persisted, current) => {
+        const incoming = (persisted ?? {}) as Partial<AppState>;
+        const merged = { ...current, ...incoming } as AppState;
+
+        const stored = incoming.namingConvention;
+        if (!stored?.variables) return merged;
+
+        const have = new Set(stored.variables.map((v) => v.key));
+        const missing = DEFAULT_NAMING_CONVENTION.variables.filter((v) => !have.has(v.key));
+        if (missing.length === 0) return merged;
+
+        return {
+          ...merged,
+          namingConvention: { ...stored, variables: [...stored.variables, ...missing] },
+        };
+      },
     }
   )
 );

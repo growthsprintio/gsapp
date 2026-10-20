@@ -47,6 +47,14 @@ export interface RoadmapItem {
    * live without a schema change.
    */
   variables?: Record<string, string>;
+  /**
+   * True once someone types their own ad name, which stops it rebuilding from
+   * the convention. Without this the brief inferred "custom" from the name
+   * merely existing, so an existing brief never updated its name again.
+   */
+  adNameCustom?: boolean;
+  /** The {#} value, kept so a name doesn't change every time it's reopened. */
+  nameIndex?: number;
   dueDate?: string;
   adLength?: string;
   assignee?: string;
