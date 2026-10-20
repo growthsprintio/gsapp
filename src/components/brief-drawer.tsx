@@ -91,6 +91,81 @@ function AdPreview({ form, asset }: {
   );
 }
 
+/** "instagram.com/p/Cx9…" — enough to tell links apart at a glance. */
+function shortLink(url: string) {
+  try {
+    const u = new URL(url);
+    const path = u.pathname.replace(/\/$/, '');
+    // Keep the query: youtube.com/watch?v=… and ad-library ?id=… links are
+    // only distinguishable by it.
+    return u.hostname.replace(/^www\./, '') + (path && path !== '/' ? path : '') + u.search;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Any number of links, stored newline-joined in one field so existing
+ * single-link briefs keep working.
+ *
+ * Links render as chips that wrap sideways, and the stack caps its height
+ * and scrolls, so adding more never pushes the rest of the brief down the
+ * page. Paste adds immediately; Enter or leaving the field adds typed input.
+ */
+function LinkChips({ value, onChange, placeholder }: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  const [draft, setDraft] = useState('');
+  const links = value.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+
+  const add = (raw: string) => {
+    // Several pasted at once — one per line or space-separated — all land.
+    const incoming = raw.split(/[\s\n]+/).map((s) => s.trim()).filter(Boolean)
+      .map((s) => (/^https?:\/\//i.test(s) ? s : `https://${s}`));
+    const next = [...links];
+    for (const url of incoming) if (!next.includes(url)) next.push(url);
+    if (next.length !== links.length) onChange(next.join('\n'));
+    setDraft('');
+  };
+
+  const remove = (url: string) => onChange(links.filter((l) => l !== url).join('\n'));
+
+  return (
+    <div className="min-w-0">
+      {links.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 max-h-[84px] overflow-y-auto [scrollbar-width:thin] px-1 pt-1.5 pb-1">
+          {links.map((url) => (
+            <span key={url} title={url}
+              className="group/chip inline-flex items-center gap-1 max-w-[220px] bg-secondary border border-border rounded-md pl-2 pr-0.5 py-0.5 text-[11px]">
+              <a href={url} target="_blank" rel="noreferrer" className="truncate hover:text-primary transition-colors">
+                {shortLink(url)}
+              </a>
+              <button type="button" onClick={() => remove(url)} aria-label={`Remove ${shortLink(url)}`}
+                className="p-0.5 rounded text-muted-foreground hover:text-foreground flex-shrink-0">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onPaste={(e) => {
+          const text = e.clipboardData.getData('text');
+          if (text.trim()) { e.preventDefault(); add(text); }
+        }}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(draft); } }}
+        onBlur={() => { if (draft.trim()) add(draft); }}
+        placeholder={links.length ? 'Add another link' : placeholder}
+        className={GHOST}
+      />
+    </div>
+  );
+}
+
 function TagMultiSelect({ selected, onChange, options, placeholder, onCreate, ghost = false }: {
   selected: string[];
   onChange: (values: string[]) => void;
@@ -287,7 +362,6 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const [adSetsNonce, setAdSetsNonce] = useState(0);
   const adSetsFetched = useRef(false);
   const scrollRef = useRef<HTMLFormElement>(null);
-  const [showRefs, setShowRefs] = useState(false);
   const [dupOpen, setDupOpen] = useState(false);
   const [dupName, setDupName] = useState('');
   const [dupState, setDupState] = useState<'idle' | 'working'>('idle');
@@ -415,7 +489,6 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     // Hydrate from the item — without this, values carried over from whichever
     // brief was opened before.
     setCustomValues(editItem?.variables ?? {});
-    setShowRefs(!!(editItem?.inspirationLink || editItem?.referenceCreative || editItem?.frameioLink || editItem?.finalDeliverable));
     setTab('brief');
     // Only an explicitly hand-written name stops the rebuild. Treating any
     // existing name as custom meant editing a saved brief never updated it.
@@ -521,8 +594,6 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     launch: { missing: missingFor.launch, done: missingFor.launch.length === 0 },
   };
   const stepIndex = STEPS.findIndex((s) => s.id === tab);
-  const refCount = [form.inspirationLink, form.referenceCreative, form.frameioLink, form.finalDeliverable]
-    .filter((v) => v && v.trim()).length;
 
   const handlePush = async () => {
     if (!editItem) return;
@@ -680,36 +751,36 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     />
                   </section>
 
-                  {/* References — secondary, so folded away until wanted */}
+                  {/* References — always open; they're part of the brief */}
                   <section className="border-t border-border pt-4">
-                    <button type="button" onClick={() => setShowRefs((v) => !v)}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                      <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', !showRefs && '-rotate-90')} />
-                      References
-                      {refCount > 0 && <span className="font-normal">· {refCount}</span>}
-                    </button>
-                    {showRefs && (
-                      <div className="mt-3 space-y-1">
-                        {([
-                          ['inspirationLink', 'Inspiration', 'Link to an ad or post to riff on'],
-                          ['referenceCreative', 'Reference asset', 'Asset the designer should use'],
-                          ['frameioLink', 'Frame.io', 'Review link'],
-                          ['finalDeliverable', 'Final deliverable', 'Finished asset link'],
-                        ] as const).map(([key, label, ph]) => (
-                          <div key={key} className="grid grid-cols-[120px_minmax(0,1fr)_auto] items-center gap-2">
-                            <span className="text-xs text-muted-foreground">{label}</span>
-                            <input value={form[key]} onChange={(e) => set(key, e.target.value)}
-                              placeholder={ph} className={GHOST} />
-                            {form[key] ? (
-                              <a href={form[key]} target="_blank" rel="noreferrer" title="Open" aria-label={`Open ${label}`}
-                                className="p-1 rounded text-muted-foreground hover:text-primary transition-colors">
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            ) : <span className="w-[22px]" />}
-                          </div>
-                        ))}
+                    <h3 className="text-xs font-semibold mb-3">References</h3>
+                    <div className="space-y-2">
+                      {/* Inspiration takes any number of links, shown as chips
+                          that wrap sideways — ten links is two short rows, not
+                          ten full-width inputs. */}
+                      <div className="grid grid-cols-[120px_minmax(0,1fr)] items-start gap-2">
+                        <span className="text-xs text-muted-foreground pt-2">Inspiration</span>
+                        <LinkChips value={form.inspirationLink} onChange={(v) => set('inspirationLink', v)}
+                          placeholder="Paste a link to an ad or post" />
                       </div>
-                    )}
+                      {([
+                        ['referenceCreative', 'Reference asset', 'Asset the designer should use'],
+                        ['frameioLink', 'Frame.io', 'Review link'],
+                        ['finalDeliverable', 'Final deliverable', 'Finished asset link'],
+                      ] as const).map(([key, label, ph]) => (
+                        <div key={key} className="grid grid-cols-[120px_minmax(0,1fr)_auto] items-center gap-2">
+                          <span className="text-xs text-muted-foreground">{label}</span>
+                          <input value={form[key]} onChange={(e) => set(key, e.target.value)}
+                            placeholder={ph} className={GHOST} />
+                          {form[key] ? (
+                            <a href={form[key]} target="_blank" rel="noreferrer" title="Open" aria-label={`Open ${label}`}
+                              className="p-1 rounded text-muted-foreground hover:text-primary transition-colors">
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          ) : <span className="w-[22px]" />}
+                        </div>
+                      ))}
+                    </div>
                   </section>
                 </div>
 
