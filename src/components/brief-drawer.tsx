@@ -536,6 +536,75 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
           <div className="px-6 py-5 space-y-4">
             {tab === 'brief' && (
               <>
+                {/* Ad Name */}
+                <div>
+                  <label className="text-xs font-medium block mb-1.5">Ad Name</label>
+                  <div className="flex gap-2">
+                    <input value={form.adName} onChange={(e) => { setNameEdited(true); set('adName', e.target.value); }}
+                      placeholder="Auto-generated or enter manually"
+                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary font-mono text-xs"
+                    />
+                    <button type="button" onClick={generateName}
+                      title="Generate ad name"
+                      className="border border-border rounded-lg px-3 py-2 text-muted-foreground hover:text-primary hover:border-primary transition-colors">
+                      <Wand2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {nameEdited
+                      ? 'Custom name — the wand rebuilds it from your naming convention.'
+                      : 'Building automatically as you fill in the brief.'}
+                  </p>
+                </div>
+
+                {/* One field per naming variable, straight from the convention.
+                    A variable added in Settings shows up here on its own —
+                    the brief and the convention can't drift apart. */}
+                {customVars.length > 0 && (
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Variables</label>
+                    <div className={`grid gap-2 ${customVars.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                      {customVars.map((v) => {
+                        // Older variables were seeded with a single blank
+                        // option, which rendered as an empty dropdown you
+                        // couldn't type into. Blank entries don't count.
+                        const options = (v.values ?? []).filter((o) => o.match.trim());
+                        return (
+                          <div key={v.key}>
+                            <label className="text-[11px] text-muted-foreground block mb-1">
+                              {v.label}
+                              {v.prefix && <span className="font-mono ml-1 opacity-60">{v.prefix}</span>}
+                            </label>
+                            {options.length > 0 ? (
+                              <select
+                                value={customValues[v.key] || ''}
+                                onChange={(e) => setCustom(v.key, e.target.value)}
+                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                                <option value="">Select {v.label.toLowerCase()}…</option>
+                                {options.map((opt: { match: string; output: string }) => (
+                                  <option key={opt.match} value={opt.match}>{opt.match}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              // No predefined list — free text, so a brand new
+                              // variable is usable the moment it's created.
+                              <input
+                                value={customValues[v.key] || ''}
+                                onChange={(e) => setCustom(v.key, e.target.value)}
+                                placeholder={v.label}
+                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      These feed the ad name. Add or change them in Settings → Naming.
+                    </p>
+                  </div>
+                )}
+
                 {/* Format + Size */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -720,77 +789,6 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                   </div>
                 </div>
 
-                {/* ── Result ── the name is built from everything above, so it
-                    comes last: fill the brief top to bottom and watch it assemble. */}
-                <div className="border-t border-border" />
-                {/* One field per naming variable, straight from the convention.
-                    A variable added in Settings shows up here on its own —
-                    the brief and the convention can't drift apart. */}
-                {customVars.length > 0 && (
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Variables</label>
-                    <div className={`grid gap-2 ${customVars.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                      {customVars.map((v) => {
-                        // Older variables were seeded with a single blank
-                        // option, which rendered as an empty dropdown you
-                        // couldn't type into. Blank entries don't count.
-                        const options = (v.values ?? []).filter((o) => o.match.trim());
-                        return (
-                          <div key={v.key}>
-                            <label className="text-[11px] text-muted-foreground block mb-1">
-                              {v.label}
-                              {v.prefix && <span className="font-mono ml-1 opacity-60">{v.prefix}</span>}
-                            </label>
-                            {options.length > 0 ? (
-                              <select
-                                value={customValues[v.key] || ''}
-                                onChange={(e) => setCustom(v.key, e.target.value)}
-                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                                <option value="">Select {v.label.toLowerCase()}…</option>
-                                {options.map((opt: { match: string; output: string }) => (
-                                  <option key={opt.match} value={opt.match}>{opt.match}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              // No predefined list — free text, so a brand new
-                              // variable is usable the moment it's created.
-                              <input
-                                value={customValues[v.key] || ''}
-                                onChange={(e) => setCustom(v.key, e.target.value)}
-                                placeholder={v.label}
-                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      These feed the ad name. Add or change them in Settings → Naming.
-                    </p>
-                  </div>
-                )}
-
-                {/* Ad Name */}
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Ad Name</label>
-                  <div className="flex gap-2">
-                    <input value={form.adName} onChange={(e) => { setNameEdited(true); set('adName', e.target.value); }}
-                      placeholder="Auto-generated or enter manually"
-                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary font-mono text-xs"
-                    />
-                    <button type="button" onClick={generateName}
-                      title="Generate ad name"
-                      className="border border-border rounded-lg px-3 py-2 text-muted-foreground hover:text-primary hover:border-primary transition-colors">
-                      <Wand2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    {nameEdited
-                      ? 'Custom name — the wand rebuilds it from your naming convention.'
-                      : 'Building automatically as you fill in the brief.'}
-                  </p>
-                </div>
 
               </>
             )}
