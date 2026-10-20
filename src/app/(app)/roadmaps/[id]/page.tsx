@@ -6,7 +6,7 @@ import { FORMAT_OPTIONS } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { use, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, ArrowLeft, Zap, ExternalLink, ChevronDown, Pencil, Trash2, Image as ImageIcon, CheckSquare, Square, Copy as CopyIcon } from 'lucide-react';
+import { Plus, ArrowLeft, Zap, ExternalLink, ChevronDown, Pencil, Trash2, Image as ImageIcon, CheckSquare, Square, Copy as CopyIcon, Check } from 'lucide-react';
 import Link from 'next/link';
 import { BriefDrawer } from '@/components/brief-drawer';
 import { BulkLaunchModal } from '@/components/bulk-launch-modal';
@@ -57,6 +57,7 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
   const deleteItem = useAppStore((s) => s.deleteItem);
   const duplicateItem = useAppStore((s) => s.duplicateItem);
   const [menu, setMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
 
@@ -109,7 +110,27 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
           <div className="min-w-0">
             <p className="text-sm font-medium truncate">{item.concept || item.adName || <span className="text-muted-foreground italic">Untitled</span>}</p>
             {item.adName && item.concept && (
-              <p className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">{item.adName}</p>
+              // The ad name gets pasted into Ads Manager and sheets, and it's
+              // long enough that selecting it by hand is a nuisance.
+              <div className="flex items-center gap-1.5 mt-0.5" onClick={stop}>
+                <p className="text-[11px] text-muted-foreground font-mono truncate" title={item.adName}>{item.adName}</p>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(item.adName!);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                  }}
+                  title="Copy ad name"
+                  aria-label="Copy ad name"
+                  className={cn(
+                    'p-0.5 rounded transition-all flex-shrink-0',
+                    copied
+                      ? 'text-primary opacity-100'
+                      : 'text-muted-foreground/60 hover:text-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+                  )}>
+                  {copied ? <Check className="w-3 h-3" /> : <CopyIcon className="w-3 h-3" />}
+                </button>
+              </div>
             )}
           </div>
         </div>
