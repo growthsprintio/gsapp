@@ -6,7 +6,7 @@ import { FORMAT_OPTIONS } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { use, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, ArrowLeft, Zap, ExternalLink, ChevronDown, Pencil, Trash2, Image as ImageIcon, CheckSquare, Square } from 'lucide-react';
+import { Plus, ArrowLeft, Zap, ExternalLink, ChevronDown, Pencil, Trash2, Image as ImageIcon, CheckSquare, Square, Copy as CopyIcon } from 'lucide-react';
 import Link from 'next/link';
 import { BriefDrawer } from '@/components/brief-drawer';
 import { BulkLaunchModal } from '@/components/bulk-launch-modal';
@@ -55,6 +55,7 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
 }) {
   const updateItemStatus = useAppStore((s) => s.updateItemStatus);
   const deleteItem = useAppStore((s) => s.deleteItem);
+  const duplicateItem = useAppStore((s) => s.duplicateItem);
   const [menu, setMenu] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
@@ -191,9 +192,15 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
       </td>
       <td className="px-4 py-3" onClick={stop}>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onEdit(item)}
+          <button onClick={() => onEdit(item)} title="Edit brief" aria-label="Edit brief"
             className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
             <Pencil className="w-3.5 h-3.5" />
+          </button>
+          {/* Same creative into another campaign — copy rather than rebuild */}
+          <button onClick={() => duplicateItem(roadmapId, item.id)}
+            title="Duplicate for another campaign" aria-label="Duplicate for another campaign"
+            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+            <CopyIcon className="w-3.5 h-3.5" />
           </button>
           <button onClick={() => deleteItem(roadmapId, item.id)}
             className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors">
@@ -223,6 +230,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkLaunchOpen, setBulkLaunchOpen] = useState(false);
   const deleteItem = useAppStore((s) => s.deleteItem);
+  const duplicateItem = useAppStore((s) => s.duplicateItem);
   const updateItem = useAppStore((s) => s.updateItem);
 
   if (!roadmap) return (
@@ -245,6 +253,11 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
   };
   const bulkDelete = () => {
     selectedIds.forEach((id) => deleteItem(roadmap.id, id));
+    clearSelection();
+  };
+  /** Copy a whole selection so a batch can go into a second campaign. */
+  const bulkDuplicate = () => {
+    selectedIds.forEach((id) => duplicateItem(roadmap.id, id));
     clearSelection();
   };
 
@@ -496,7 +509,14 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
               Launch{launchableCount > 0 ? ` ${launchableCount}` : ''}
             </button>
 
-            <button onClick={bulkDelete} title="Delete selected"
+            <button onClick={bulkDuplicate} title="Duplicate selected for another campaign"
+              aria-label="Duplicate selected for another campaign"
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg hover:bg-background/10 transition-colors">
+              <CopyIcon className="w-3.5 h-3.5" />
+              Duplicate
+            </button>
+
+            <button onClick={bulkDelete} title="Delete selected" aria-label="Delete selected"
               className="p-1.5 rounded-lg hover:bg-background/10 transition-colors">
               <Trash2 className="w-3.5 h-3.5" />
             </button>

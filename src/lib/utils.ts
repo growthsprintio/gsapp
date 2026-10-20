@@ -174,6 +174,37 @@ export function applyNamingConvention(
   return result.trim();
 }
 
+/**
+ * The content of a duplicated creative, so the same asset and copy can go into
+ * another campaign or ad set.
+ *
+ * Pure so it can be tested on its own; the store supplies ids and timestamps.
+ */
+export function buildDuplicateFields(
+  source: RoadmapItem,
+  convention: NamingConvention,
+  extra?: { brand?: string; index?: number },
+): Partial<RoadmapItem> {
+  return {
+    // The copy has not been pushed, and is attached to nothing.
+    metaAdId: undefined,
+    metaCampaignId: undefined,
+    metaAdSetId: undefined,
+    launchedAt: undefined,
+    // Copying a live ad gives you an approved draft, not a second live ad.
+    status: source.status === 'launched' ? 'ready_to_launch' : source.status,
+    // Two ads sharing a name are indistinguishable in Meta's ad-level
+    // reporting, so rebuild it from the convention with a fresh index.
+    adName: source.adName
+      ? applyNamingConvention(convention, source, {
+        brand: extra?.brand,
+        index: extra?.index ?? 1,
+        customValues: source.variables,
+      }) || `${source.adName} copy`
+      : '',
+  };
+}
+
 /** Keys the app computes rather than asking the user for. */
 const COMPUTED_KEYS = new Set(['#', 'b']);
 

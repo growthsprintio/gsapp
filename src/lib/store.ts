@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { createWorkspaceStorage } from './workspace-storage';
 import type { Account, Roadmap, RoadmapItem, CopyBankEntry, CreativeBankEntry, CreativeStatus, NamingConvention } from './types';
-import { nanoid, DEFAULT_NAMING_CONVENTION } from './utils';
+import { nanoid, DEFAULT_NAMING_CONVENTION, buildDuplicateFields } from './utils';
 
 interface AppState {
   accounts: Account[];
@@ -32,6 +32,7 @@ interface AppState {
   // Item actions
   addItem: (roadmapId: string, item: Omit<RoadmapItem, 'id' | 'roadmapId' | 'createdAt' | 'updatedAt'>) => string;
   updateItem: (roadmapId: string, itemId: string, updates: Partial<RoadmapItem>) => void;
+  duplicateItem: (roadmapId: string, itemId: string) => string;
   updateItemStatus: (roadmapId: string, itemId: string, status: CreativeStatus) => void;
   deleteItem: (roadmapId: string, itemId: string) => void;
 
@@ -121,6 +122,40 @@ export const useAppStore = create<AppState>()(
             r.id === roadmapId
               ? { ...r, items: [...r.items, { ...item, id, roadmapId, createdAt: now, updatedAt: now }] }
               : r
+          ),
+        }));
+        return id;
+      },
+
+      /**
+       * Copy a creative so the same asset and copy can go into another
+       * campaign or ad set. Meta links are cleared — the copy is a new ad that
+       * hasn't been pushed — and a launched source comes back as approved,
+       * since the copy itself isn't live.
+       */
+      duplicateItem: (roadmapId, itemId) => {
+        const roadmap = get().roadmaps.find((r) => r.id === roadmapId);
+        const source = roadmap?.items.find((i) => i.id === itemId);
+        if (!source) return '';
+
+        const id = nanoid();
+        const now = new Date().toISOString();
+
+        const copy: RoadmapItem = {
+          ...source,
+          ...buildDuplicateFields(source, get().namingConvention, {
+            brand: get().currentAccount()?.name?.slice(0, 3) || 'BRD',
+            index: Math.floor(Math.random() * 999) + 1,
+          }),
+          id,
+          roadmapId,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        set((s) => ({
+          roadmaps: s.roadmaps.map((r) =>
+            r.id === roadmapId ? { ...r, items: [...r.items, copy] } : r
           ),
         }));
         return id;
