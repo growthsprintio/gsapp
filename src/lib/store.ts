@@ -264,13 +264,23 @@ export const useAppStore = create<AppState>()(
         const stored = incoming.namingConvention;
         if (!stored?.variables) return merged;
 
-        const have = new Set(stored.variables.map((v) => v.key));
+        const presets = new Map(DEFAULT_NAMING_CONVENTION.variables.map((v) => [v.key, v]));
+
+        // Where a preset's wiring has changed — Landing Page moved from being
+        // its own input to reading the Ad Setup field — adopt the new source,
+        // but keep the workspace's label, prefix, options and length.
+        const reconciled = stored.variables.map((v) => {
+          const preset = presets.get(v.key);
+          if (!preset || preset.source === v.source) return v;
+          return { ...v, source: preset.source, field: preset.field };
+        });
+
+        const have = new Set(reconciled.map((v) => v.key));
         const missing = DEFAULT_NAMING_CONVENTION.variables.filter((v) => !have.has(v.key));
-        if (missing.length === 0) return merged;
 
         return {
           ...merged,
-          namingConvention: { ...stored, variables: [...stored.variables, ...missing] },
+          namingConvention: { ...stored, variables: [...reconciled, ...missing] },
         };
       },
     }

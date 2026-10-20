@@ -7,7 +7,7 @@ import {
   FORMAT_OPTIONS, SIZE_OPTIONS, type RoadmapItem, type AdFormat,
   META_CTAS,
 } from '@/lib/types';
-import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle, Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef } from 'react';
 import { CreativeInput } from '@/components/asset-drop';
@@ -206,6 +206,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const [adSetsError, setAdSetsError] = useState('');
   const [adSetsNonce, setAdSetsNonce] = useState(0);
   const adSetsFetched = useRef(false);
+  const scrollRef = useRef<HTMLFormElement>(null);
   const [dupOpen, setDupOpen] = useState(false);
   const [dupName, setDupName] = useState('');
   const [dupState, setDupState] = useState<'idle' | 'working'>('idle');
@@ -364,7 +365,17 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     const next = buildName(form);
     if (next && next !== form.adName) setForm((f) => ({ ...f, adName: next }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, nameEdited, form.adFormat, form.adSize, form.angle, form.concept, form.product, form.productCategory, customValues]);
+    // landingPage is in here because {lp} now reads it — without it, changing
+    // the landing page in Ad Setup left the name stale.
+  }, [open, nameEdited, form.adFormat, form.adSize, form.angle, form.concept, form.product, form.productCategory, form.landingPage, customValues]);
+
+  // Each step opens at the top. The steps share one scroll container, so
+  // moving on kept the previous step's scroll position and dropped you
+  // halfway down the next one. Above the early return: hooks must run on
+  // every render.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [tab]);
 
   if (!open) return null;
 
@@ -396,6 +407,38 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     { label: form.adFormat === 'carousel' ? 'Carousel cards (2-10)' : 'Creative asset', ok: creativeReady },
   ];
   const launchReady = readiness.every((r) => r.ok);
+
+  // The guided flow. Each step lists what it still needs, in the order
+  // someone would fill it in, so the header and footer can say exactly
+  // what's left instead of leaving people to scan a long form.
+  const STEPS = [
+    { id: 'brief' as const, label: 'Brief', hint: 'What we’re making', doneHint: 'Briefed' },
+    { id: 'copy' as const, label: 'Ad Setup', hint: 'Copy and destination', doneHint: 'Copy ready' },
+    { id: 'launch' as const, label: 'Launch', hint: 'Pick where it runs', doneHint: 'Ready to push' },
+  ];
+  const missingFor = {
+    brief: [
+      !form.concept && 'concept',
+      !form.adFormat && 'format',
+      !creativeReady && (form.adFormat === 'carousel' ? '2–10 cards' : 'creative'),
+    ].filter(Boolean) as string[],
+    copy: [
+      !form.primaryText && 'primary text',
+      !form.headline && 'headline',
+      !form.landingPage && 'landing page',
+      !form.metaCTA && 'CTA',
+    ].filter(Boolean) as string[],
+    launch: [
+      !form.metaAdSetId && 'campaign & ad set',
+      editItem?.status !== 'ready_to_launch' && editItem?.status !== 'launched' && 'approval',
+    ].filter(Boolean) as string[],
+  };
+  const stepState = {
+    brief: { missing: missingFor.brief, done: missingFor.brief.length === 0 },
+    copy: { missing: missingFor.copy, done: missingFor.copy.length === 0 },
+    launch: { missing: missingFor.launch, done: missingFor.launch.length === 0 },
+  };
+  const stepIndex = STEPS.findIndex((s) => s.id === tab);
 
   const handlePush = async () => {
     if (!editItem) return;
@@ -458,91 +501,41 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
         </div>
 
-        {/* Tabs */}
+        {/* Steps — ordered, with what each one still needs, so the brief reads
+            as a route to a launchable ad rather than three piles of fields. */}
         <div className="flex border-b border-border">
-          {(['brief', 'copy', 'launch'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`flex-1 text-xs py-2.5 font-medium border-b-2 -mb-px transition-colors capitalize ${
-                tab === t ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}>
-              {t === 'launch' ? 'Launch Setup' : t === 'copy' ? 'Ad Setup' : 'Brief'}
-            </button>
-          ))}
+          {STEPS.map((s, i) => {
+            const active = tab === s.id;
+            const done = stepState[s.id].done;
+            return (
+              <button key={s.id} type="button" onClick={() => setTab(s.id)}
+                className={cn(
+                  'flex-1 px-3 py-2.5 border-b-2 -mb-px transition-colors text-left',
+                  active ? 'border-primary' : 'border-transparent hover:bg-muted/40',
+                )}>
+                <div className="flex items-center gap-1.5">
+                  <span className={cn(
+                    'w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0',
+                    done ? 'bg-primary text-white' : active ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground',
+                  )}>
+                    {done ? <Check className="w-2.5 h-2.5" /> : i + 1}
+                  </span>
+                  <span className={cn('text-xs font-medium', active ? 'text-foreground' : 'text-muted-foreground')}>
+                    {s.label}
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5 truncate pl-5.5">
+                  {done ? s.doneHint : stepState[s.id].missing[0] ?? s.hint}
+                </p>
+              </button>
+            );
+          })}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+        <form ref={scrollRef} onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="px-6 py-5 space-y-4">
             {tab === 'brief' && (
               <>
-                {/* One field per naming variable, straight from the convention.
-                    A variable added in Settings shows up here on its own —
-                    the brief and the convention can't drift apart. */}
-                {customVars.length > 0 && (
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Variables</label>
-                    <div className={`grid gap-2 ${customVars.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                      {customVars.map((v) => {
-                        // Older variables were seeded with a single blank
-                        // option, which rendered as an empty dropdown you
-                        // couldn't type into. Blank entries don't count.
-                        const options = (v.values ?? []).filter((o) => o.match.trim());
-                        return (
-                          <div key={v.key}>
-                            <label className="text-[11px] text-muted-foreground block mb-1">
-                              {v.label}
-                              {v.prefix && <span className="font-mono ml-1 opacity-60">{v.prefix}</span>}
-                            </label>
-                            {options.length > 0 ? (
-                              <select
-                                value={customValues[v.key] || ''}
-                                onChange={(e) => setCustom(v.key, e.target.value)}
-                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                                <option value="">Select {v.label.toLowerCase()}…</option>
-                                {options.map((opt: { match: string; output: string }) => (
-                                  <option key={opt.match} value={opt.match}>{opt.match}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              // No predefined list — free text, so a brand new
-                              // variable is usable the moment it's created.
-                              <input
-                                value={customValues[v.key] || ''}
-                                onChange={(e) => setCustom(v.key, e.target.value)}
-                                placeholder={v.label}
-                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      These feed the ad name. Add or change them in Settings → Naming.
-                    </p>
-                  </div>
-                )}
-
-                {/* Ad Name */}
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Ad Name</label>
-                  <div className="flex gap-2">
-                    <input value={form.adName} onChange={(e) => { setNameEdited(true); set('adName', e.target.value); }}
-                      placeholder="Auto-generated or enter manually"
-                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary font-mono text-xs"
-                    />
-                    <button type="button" onClick={generateName}
-                      title="Generate ad name"
-                      className="border border-border rounded-lg px-3 py-2 text-muted-foreground hover:text-primary hover:border-primary transition-colors">
-                      <Wand2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    {nameEdited
-                      ? 'Custom name — the wand rebuilds it from your naming convention.'
-                      : 'Building automatically as you fill in the brief.'}
-                  </p>
-                </div>
-
                 {/* Format + Size */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -726,6 +719,79 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     </div>
                   </div>
                 </div>
+
+                {/* ── Result ── the name is built from everything above, so it
+                    comes last: fill the brief top to bottom and watch it assemble. */}
+                <div className="border-t border-border" />
+                {/* One field per naming variable, straight from the convention.
+                    A variable added in Settings shows up here on its own —
+                    the brief and the convention can't drift apart. */}
+                {customVars.length > 0 && (
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5">Variables</label>
+                    <div className={`grid gap-2 ${customVars.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                      {customVars.map((v) => {
+                        // Older variables were seeded with a single blank
+                        // option, which rendered as an empty dropdown you
+                        // couldn't type into. Blank entries don't count.
+                        const options = (v.values ?? []).filter((o) => o.match.trim());
+                        return (
+                          <div key={v.key}>
+                            <label className="text-[11px] text-muted-foreground block mb-1">
+                              {v.label}
+                              {v.prefix && <span className="font-mono ml-1 opacity-60">{v.prefix}</span>}
+                            </label>
+                            {options.length > 0 ? (
+                              <select
+                                value={customValues[v.key] || ''}
+                                onChange={(e) => setCustom(v.key, e.target.value)}
+                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                                <option value="">Select {v.label.toLowerCase()}…</option>
+                                {options.map((opt: { match: string; output: string }) => (
+                                  <option key={opt.match} value={opt.match}>{opt.match}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              // No predefined list — free text, so a brand new
+                              // variable is usable the moment it's created.
+                              <input
+                                value={customValues[v.key] || ''}
+                                onChange={(e) => setCustom(v.key, e.target.value)}
+                                placeholder={v.label}
+                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      These feed the ad name. Add or change them in Settings → Naming.
+                    </p>
+                  </div>
+                )}
+
+                {/* Ad Name */}
+                <div>
+                  <label className="text-xs font-medium block mb-1.5">Ad Name</label>
+                  <div className="flex gap-2">
+                    <input value={form.adName} onChange={(e) => { setNameEdited(true); set('adName', e.target.value); }}
+                      placeholder="Auto-generated or enter manually"
+                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary font-mono text-xs"
+                    />
+                    <button type="button" onClick={generateName}
+                      title="Generate ad name"
+                      className="border border-border rounded-lg px-3 py-2 text-muted-foreground hover:text-primary hover:border-primary transition-colors">
+                      <Wand2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {nameEdited
+                      ? 'Custom name — the wand rebuilds it from your naming convention.'
+                      : 'Building automatically as you fill in the brief.'}
+                  </p>
+                </div>
+
               </>
             )}
 
@@ -1020,16 +1086,46 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
             )}
           </div>
 
-          {/* Footer */}
-          <div className="sticky bottom-0 px-6 py-4 border-t border-border bg-card flex gap-3">
-            <button type="button" onClick={onClose}
-              className="flex-1 border border-border rounded-lg py-2 text-sm hover:bg-secondary transition-colors">
-              Cancel
-            </button>
-            <button type="submit"
-              className="flex-1 bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
-              {editItem ? 'Save Changes' : 'Save Brief'}
-            </button>
+          {/* Footer — what's left on this step, then a way forward */}
+          <div className="sticky bottom-0 border-t border-border bg-card">
+            {stepState[tab].missing.length > 0 && (
+              <p className="px-6 pt-3 text-[11px] text-muted-foreground">
+                Still needed here: <span className="text-foreground">{stepState[tab].missing.join(', ')}</span>
+              </p>
+            )}
+            <div className="px-6 py-4 flex items-center gap-3">
+              {stepIndex > 0 ? (
+                <button type="button" onClick={() => setTab(STEPS[stepIndex - 1].id)}
+                  className="border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">
+                  Back
+                </button>
+              ) : (
+                <button type="button" onClick={onClose}
+                  className="border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">
+                  Cancel
+                </button>
+              )}
+
+              <div className="flex-1" />
+
+              <button type="submit"
+                className={cn(
+                  'rounded-lg px-4 py-2 text-sm transition-colors',
+                  stepIndex === STEPS.length - 1
+                    ? 'flex-1 bg-primary text-white font-medium hover:bg-primary/90'
+                    : 'border border-border hover:bg-secondary',
+                )}>
+                {editItem ? 'Save Changes' : 'Save Brief'}
+              </button>
+
+              {stepIndex < STEPS.length - 1 && (
+                <button type="button" onClick={() => setTab(STEPS[stepIndex + 1].id)}
+                  className="flex items-center gap-1.5 bg-primary text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
+                  Next: {STEPS[stepIndex + 1].label}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         </form>
       </div>
