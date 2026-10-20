@@ -7,19 +7,98 @@ import {
   FORMAT_OPTIONS, SIZE_OPTIONS, type RoadmapItem, type AdFormat,
   META_CTAS,
 } from '@/lib/types';
-import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle, Image as ImageIcon, ArrowRight } from 'lucide-react';
+import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle, Image as ImageIcon, ArrowRight, Copy as CopyIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef } from 'react';
 import { CreativeInput } from '@/components/asset-drop';
 
 const DEFAULT_ANGLES = ['Pain Point', 'Social Proof', 'Hook', 'Curiosity', 'Urgency', 'Lifestyle', 'Before/After', 'Tutorial', 'Comparison', 'Testimonial', 'UGC Raw', 'Founder Story'];
 
-function TagMultiSelect({ selected, onChange, options, placeholder, onCreate }: {
+/** Borderless input that only shows its outline on hover and focus. */
+const GHOST = 'w-full bg-transparent border border-transparent rounded-md px-2 py-1.5 text-sm hover:border-border focus:border-primary focus:outline-none transition-colors placeholder:text-muted-foreground/50';
+
+/** A label / value row in the Properties panel. */
+function Prop({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[68px_minmax(0,1fr)] items-start gap-1">
+      <span className="text-xs text-muted-foreground pt-2 px-2 truncate" title={label}>{label}</span>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
+/** Standard bordered input for longer copy, where a visible box helps. */
+const FIELD = 'w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50';
+
+/**
+ * Character count against Meta's recommended length. Going over isn't an
+ * error — Meta truncates behind "See more" — so it turns amber, not red.
+ */
+function Count({ n, max }: { n: number; max: number }) {
+  if (n === 0) return null;
+  return (
+    <span className={cn('text-[10px] tabular-nums', n > max ? 'text-amber-600 font-medium' : 'text-muted-foreground')}
+      title={n > max ? `Meta shows about ${max} characters before cutting off` : `Meta recommends up to ${max}`}>
+      {n}/{max}
+    </span>
+  );
+}
+
+/** A Facebook-feed-shaped preview of the ad, built from the brief. */
+function AdPreview({ form, asset }: {
+  form: { primaryText: string; headline: string; adDescription: string; landingPage: string; metaCTA: string };
+  asset?: string;
+}) {
+  const cta = META_CTAS.find((c) => c.value === form.metaCTA)?.label;
+  let domain = '';
+  try { domain = form.landingPage ? new URL(form.landingPage).hostname.replace(/^www\./, '') : ''; } catch { domain = form.landingPage; }
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm text-left">
+      <div className="flex items-center gap-2 px-3 pt-3">
+        <div className="w-7 h-7 rounded-full bg-secondary flex-shrink-0" />
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold leading-tight">Your Page</p>
+          <p className="text-[10px] text-muted-foreground leading-tight">Sponsored</p>
+        </div>
+      </div>
+      <p className={cn('px-3 pt-2 pb-2.5 text-xs leading-relaxed line-clamp-3 whitespace-pre-line', !form.primaryText && 'text-muted-foreground/60 italic')}>
+        {form.primaryText || 'Primary text appears here'}
+      </p>
+      <div className="aspect-square bg-secondary flex items-center justify-center">
+        {asset ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={asset} alt="" className="w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+        ) : (
+          <ImageIcon className="w-6 h-6 text-muted-foreground/50" />
+        )}
+      </div>
+      <div className="flex items-center gap-2 px-3 py-2.5 bg-muted/40">
+        <div className="min-w-0 flex-1">
+          {domain && <p className="text-[9px] uppercase tracking-wide text-muted-foreground truncate">{domain}</p>}
+          <p className={cn('text-xs font-semibold truncate', !form.headline && 'text-muted-foreground/60 font-normal italic')}>
+            {form.headline || 'Headline'}
+          </p>
+          {form.adDescription && <p className="text-[10px] text-muted-foreground truncate">{form.adDescription}</p>}
+        </div>
+        <span className={cn('text-[10px] font-semibold rounded px-2.5 py-1.5 flex-shrink-0',
+          cta ? 'bg-secondary border border-border' : 'border border-dashed border-border text-muted-foreground')}>
+          {cta ?? 'Button'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function TagMultiSelect({ selected, onChange, options, placeholder, onCreate, ghost = false }: {
   selected: string[];
   onChange: (values: string[]) => void;
   options: string[];
   placeholder: string;
   onCreate?: (value: string) => void; // fired when a brand-new value is created (e.g. persist to a bank)
+  /** Borderless until hover/focus, for compact property rows. */
+  ghost?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -70,8 +149,9 @@ function TagMultiSelect({ selected, onChange, options, placeholder, onCreate }: 
       <div
         onClick={() => { setIsOpen(true); inputRef.current?.focus(); }}
         className={cn(
-          'min-h-[38px] w-full border rounded-lg px-2 py-1.5 flex flex-wrap items-center gap-1 cursor-text bg-background transition-colors',
-          isOpen ? 'border-primary ring-1 ring-primary/30' : 'border-border'
+          'w-full border flex flex-wrap items-center gap-1 cursor-text transition-colors',
+          ghost ? 'min-h-[34px] rounded-md px-1.5 py-1 bg-transparent' : 'min-h-[38px] rounded-lg px-2 py-1.5 bg-background',
+          isOpen ? 'border-primary ring-1 ring-primary/30' : ghost ? 'border-transparent hover:border-border' : 'border-border'
         )}
       >
         {selected.map((angle) => (
@@ -92,9 +172,9 @@ function TagMultiSelect({ selected, onChange, options, placeholder, onCreate }: 
           onBlur={() => setTimeout(() => setIsOpen(false), 200)}
           onKeyDown={handleKeyDown}
           placeholder={selected.length === 0 ? placeholder : 'Add more...'}
-          className="flex-1 min-w-[100px] text-sm bg-transparent outline-none placeholder:text-muted-foreground py-0.5"
+          className={cn('flex-1 text-sm bg-transparent outline-none py-0.5', ghost ? 'min-w-[56px] placeholder:text-muted-foreground/50' : 'min-w-[100px] placeholder:text-muted-foreground')}
         />
-        <ChevronDown className={cn('w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0', isOpen && 'rotate-180')} />
+        {!ghost && <ChevronDown className={cn('w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0', isOpen && 'rotate-180')} />}
       </div>
 
       {isOpen && (filtered.length > 0 || canCreate) && (
@@ -207,6 +287,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const [adSetsNonce, setAdSetsNonce] = useState(0);
   const adSetsFetched = useRef(false);
   const scrollRef = useRef<HTMLFormElement>(null);
+  const [showRefs, setShowRefs] = useState(false);
   const [dupOpen, setDupOpen] = useState(false);
   const [dupName, setDupName] = useState('');
   const [dupState, setDupState] = useState<'idle' | 'working'>('idle');
@@ -334,6 +415,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     // Hydrate from the item — without this, values carried over from whichever
     // brief was opened before.
     setCustomValues(editItem?.variables ?? {});
+    setShowRefs(!!(editItem?.inspirationLink || editItem?.referenceCreative || editItem?.frameioLink || editItem?.finalDeliverable));
     setTab('brief');
     // Only an explicitly hand-written name stops the rebuild. Treating any
     // existing name as custom meant editing a saved brief never updated it.
@@ -439,6 +521,8 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     launch: { missing: missingFor.launch, done: missingFor.launch.length === 0 },
   };
   const stepIndex = STEPS.findIndex((s) => s.id === tab);
+  const refCount = [form.inspirationLink, form.referenceCreative, form.frameioLink, form.finalDeliverable]
+    .filter((v) => v && v.trim()).length;
 
   const handlePush = async () => {
     if (!editItem) return;
@@ -494,7 +578,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-3xl max-h-[92vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-5xl max-h-[92vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-border">
           <h2 className="font-semibold">{editItem ? 'Edit Brief' : 'New Creative Brief'}</h2>
@@ -533,326 +617,272 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
         </div>
 
         <form ref={scrollRef} onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="px-6 py-5 space-y-4">
+          <div className={tab === 'launch' ? 'px-6 py-5 space-y-4 max-w-3xl mx-auto w-full' : ''}>
             {tab === 'brief' && (
-              <>
-                {/* Ad Name */}
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Ad Name</label>
-                  <div className="flex gap-2">
-                    <input value={form.adName} onChange={(e) => { setNameEdited(true); set('adName', e.target.value); }}
-                      placeholder="Auto-generated or enter manually"
-                      className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary font-mono text-xs"
+              // Document on the left — what a designer reads. Properties on the
+              // right — what a planner sets. Splitting them is what makes the
+              // brief scannable: the idea isn't buried among sixteen equal boxes.
+              <div className="grid md:grid-cols-[minmax(0,1fr)_304px] md:divide-x divide-border min-h-full">
+                {/* ── Document ── */}
+                <div className="px-7 py-6 space-y-6 min-w-0">
+                  {/* Ad name — first, as metadata rather than a headline */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex-shrink-0">Ad name</span>
+                    <input value={form.adName}
+                      onChange={(e) => { setNameEdited(true); set('adName', e.target.value); }}
+                      placeholder="Builds as you fill in the brief"
+                      title={nameEdited ? 'Custom name — rebuild to follow your naming convention' : 'Building from your naming convention'}
+                      className="flex-1 min-w-0 font-mono text-xs bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none py-1 truncate transition-colors"
                     />
-                    <button type="button" onClick={generateName}
-                      title="Generate ad name"
-                      className="border border-border rounded-lg px-3 py-2 text-muted-foreground hover:text-primary hover:border-primary transition-colors">
-                      <Wand2 className="w-4 h-4" />
+                    {nameEdited && (
+                      <button type="button" onClick={generateName}
+                        title="Rebuild from naming convention" aria-label="Rebuild ad name"
+                        className="p-1 rounded text-muted-foreground hover:text-primary transition-colors flex-shrink-0">
+                        <Wand2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <button type="button"
+                      onClick={() => { if (form.adName) navigator.clipboard.writeText(form.adName); }}
+                      title="Copy ad name" aria-label="Copy ad name"
+                      className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+                      <CopyIcon className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    {nameEdited
-                      ? 'Custom name — the wand rebuilds it from your naming convention.'
-                      : 'Building automatically as you fill in the brief.'}
-                  </p>
+
+                  {/* Concept is the brief's headline */}
+                  <div>
+                    <input value={form.concept} onChange={(e) => set('concept', e.target.value)}
+                      placeholder="What&rsquo;s the idea?"
+                      autoFocus={!editItem}
+                      className="w-full text-2xl font-semibold tracking-tight bg-transparent focus:outline-none placeholder:text-muted-foreground/40"
+                    />
+                    <textarea value={form.description} onChange={(e) => set('description', e.target.value)}
+                      placeholder="Describe what the designer should make — the hook, the look and feel, anything to avoid."
+                      rows={4}
+                      className="w-full mt-3 text-sm leading-relaxed bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/50"
+                    />
+                  </div>
+
+                  {/* The asset */}
+                  <section>
+                    <h3 className="text-xs font-semibold mb-2">
+                      Creative
+                      {form.adFormat === 'carousel' && (
+                        <span className="font-normal text-muted-foreground">
+                          {' '}· {assetCount === 0 ? '2–10 cards' : `${assetCount} card${assetCount !== 1 ? 's' : ''}${assetCount < 2 ? ', needs 2+' : ''}`}
+                        </span>
+                      )}
+                    </h3>
+                    <CreativeInput
+                      value={form.creativeLink}
+                      onChange={(v) => set('creativeLink', v)}
+                      multiple={form.adFormat === 'carousel'}
+                    />
+                  </section>
+
+                  {/* References — secondary, so folded away until wanted */}
+                  <section className="border-t border-border pt-4">
+                    <button type="button" onClick={() => setShowRefs((v) => !v)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                      <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', !showRefs && '-rotate-90')} />
+                      References
+                      {refCount > 0 && <span className="font-normal">· {refCount}</span>}
+                    </button>
+                    {showRefs && (
+                      <div className="mt-3 space-y-1">
+                        {([
+                          ['inspirationLink', 'Inspiration', 'Link to an ad or post to riff on'],
+                          ['referenceCreative', 'Reference asset', 'Asset the designer should use'],
+                          ['frameioLink', 'Frame.io', 'Review link'],
+                          ['finalDeliverable', 'Final deliverable', 'Finished asset link'],
+                        ] as const).map(([key, label, ph]) => (
+                          <div key={key} className="grid grid-cols-[120px_minmax(0,1fr)_auto] items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{label}</span>
+                            <input value={form[key]} onChange={(e) => set(key, e.target.value)}
+                              placeholder={ph} className={GHOST} />
+                            {form[key] ? (
+                              <a href={form[key]} target="_blank" rel="noreferrer" title="Open" aria-label={`Open ${label}`}
+                                className="p-1 rounded text-muted-foreground hover:text-primary transition-colors">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            ) : <span className="w-[22px]" />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
                 </div>
 
-                {/* One field per naming variable, straight from the convention.
-                    A variable added in Settings shows up here on its own —
-                    the brief and the convention can't drift apart. */}
-                {customVars.length > 0 && (
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Variables</label>
-                    <div className={`grid gap-2 ${customVars.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                      {customVars.map((v) => {
-                        // Older variables were seeded with a single blank
-                        // option, which rendered as an empty dropdown you
-                        // couldn't type into. Blank entries don't count.
-                        const options = (v.values ?? []).filter((o) => o.match.trim());
-                        return (
-                          <div key={v.key}>
-                            <label className="text-[11px] text-muted-foreground block mb-1">
-                              {v.label}
-                              {v.prefix && <span className="font-mono ml-1 opacity-60">{v.prefix}</span>}
-                            </label>
-                            {options.length > 0 ? (
-                              <select
-                                value={customValues[v.key] || ''}
-                                onChange={(e) => setCustom(v.key, e.target.value)}
-                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                                <option value="">Select {v.label.toLowerCase()}…</option>
-                                {options.map((opt: { match: string; output: string }) => (
-                                  <option key={opt.match} value={opt.match}>{opt.match}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              // No predefined list — free text, so a brand new
-                              // variable is usable the moment it's created.
-                              <input
-                                value={customValues[v.key] || ''}
-                                onChange={(e) => setCustom(v.key, e.target.value)}
-                                placeholder={v.label}
-                                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      These feed the ad name. Add or change them in Settings → Naming.
-                    </p>
-                  </div>
-                )}
+                {/* ── Properties ── */}
+                <aside className="px-4 py-6 bg-muted/20 space-y-0.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-2">Properties</p>
 
-                {/* Format + Size */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Ad Format *</label>
+                  <Prop label="Format">
                     <select value={form.adFormat} onChange={(e) => set('adFormat', e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary capitalize">
+                      className={cn(GHOST, 'capitalize')}>
                       {FORMAT_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
                     </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Ad Size <span className="text-muted-foreground font-normal">(multi)</span></label>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
+                  </Prop>
+
+                  <Prop label="Size">
+                    <div className="flex flex-wrap gap-1 px-1 py-1">
                       {SIZE_OPTIONS.map((s) => (
                         <button type="button" key={s} onClick={() => toggleSize(s)}
-                          className={cn('text-xs px-2.5 py-1.5 rounded-lg border transition-colors',
+                          className={cn('text-[11px] px-1.5 py-0.5 rounded border transition-colors',
                             selectedSizes.includes(s)
-                              ? 'border-primary bg-primary/5 text-primary font-medium'
-                              : 'border-border text-muted-foreground hover:border-primary/30')}>
+                              ? 'border-primary bg-primary/10 text-primary font-medium'
+                              : 'border-border text-muted-foreground hover:border-primary/40')}>
                           {s}
                         </button>
                       ))}
                     </div>
-                  </div>
-                </div>
+                  </Prop>
 
-                {/* Angle — multi-select, backed by the Angle bank */}
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Creative Angle</label>
-                  <TagMultiSelect
-                    selected={form.angle ? form.angle.split(', ').filter(Boolean) : []}
-                    onChange={(angles) => set('angle', angles.join(', '))}
-                    options={[...new Set([...DEFAULT_ANGLES, ...bankAngles])]}
-                    placeholder="Search or create angles..."
-                    onCreate={(v) => addCopyEntry({ type: 'angle', content: v, tags: [] })}
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-1">New angles are saved to your Angle bank in Copy Bank.</p>
-                </div>
+                  {(form.adFormat === 'video' || form.adFormat === 'ugc') && (
+                    <Prop label="Length">
+                      <select value={form.adLength} onChange={(e) => set('adLength', e.target.value)} className={GHOST}>
+                        <option value="">—</option>
+                        {['0:06', '0:15', '0:30', '0:45', '1:00', '1:30', '2:00+'].map((l) => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                    </Prop>
+                  )}
 
-                {/* Concept */}
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Concept</label>
-                  <input value={form.concept} onChange={(e) => set('concept', e.target.value)}
-                    placeholder="One-line concept summary"
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
+                  <Prop label="Angle">
+                    <TagMultiSelect ghost
+                      selected={form.angle ? form.angle.split(', ').filter(Boolean) : []}
+                      onChange={(angles) => set('angle', angles.join(', '))}
+                      options={[...new Set([...DEFAULT_ANGLES, ...bankAngles])]}
+                      placeholder="Add angle"
+                      onCreate={(v) => addCopyEntry({ type: 'angle', content: v, tags: [] })}
+                    />
+                  </Prop>
 
-                {/* Description */}
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Creative Direction</label>
-                  <textarea value={form.description} onChange={(e) => set('description', e.target.value)}
-                    placeholder="Detailed creative direction, references, notes..."
-                    rows={3}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-                  />
-                </div>
-
-                {/* Product (multi, backed by Product bank) + Due Date */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Product <span className="text-muted-foreground font-normal">(multi)</span></label>
-                    <TagMultiSelect
+                  <Prop label="Product">
+                    <TagMultiSelect ghost
                       selected={form.product ? form.product.split(', ').filter(Boolean) : []}
                       onChange={(products) => set('product', products.join(', '))}
                       options={bankProducts}
-                      placeholder="Select or add products..."
+                      placeholder="Add product"
                       onCreate={(v) => addCopyEntry({ type: 'product', content: v, tags: [] })}
                     />
-                    <p className="text-[11px] text-muted-foreground mt-1">First product is used in the ad name.</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Product Category</label>
-                    <input value={form.productCategory} onChange={(e) => set('productCategory', e.target.value)}
-                      placeholder="e.g. grooming"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                    <p className="text-[11px] text-muted-foreground mt-1">Available as <span className="font-mono">{'{pc}'}</span> in ad names.</p>
-                  </div>
-                </div>
+                  </Prop>
 
-                {/* Due Date pairs with Ad Length when the format has one, so it
-                    isn't left sitting alone at half width. */}
-                <div className="grid grid-cols-2 gap-3 items-start">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Owner</label>
+                  <Prop label="Category">
+                    <input value={form.productCategory} onChange={(e) => set('productCategory', e.target.value)}
+                      placeholder="—" className={GHOST} />
+                  </Prop>
+
+                  {/* Naming variables the formula uses, if any */}
+                  {customVars.map((v) => {
+                    const options = (v.values ?? []).filter((o) => o.match.trim());
+                    return (
+                      <Prop key={v.key} label={v.label}>
+                        {options.length > 0 ? (
+                          <select value={customValues[v.key] || ''} onChange={(e) => setCustom(v.key, e.target.value)} className={GHOST}>
+                            <option value="">—</option>
+                            {options.map((opt) => <option key={opt.match} value={opt.match}>{opt.match}</option>)}
+                          </select>
+                        ) : (
+                          <input value={customValues[v.key] || ''} onChange={(e) => setCustom(v.key, e.target.value)}
+                            placeholder="—" className={GHOST} />
+                        )}
+                      </Prop>
+                    );
+                  })}
+
+                  <div className="border-t border-border !my-3" />
+
+                  <Prop label="Owner">
                     <input value={form.assignee} onChange={(e) => set('assignee', e.target.value)}
-                      list="brief-owners"
-                      placeholder="Who's making this?"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                    {/* The roadmap table has shown an Owner column all along,
-                        but nothing ever set it — every row read "Unassigned". */}
+                      list="brief-owners" placeholder="Unassigned" className={GHOST} />
                     <datalist id="brief-owners">
                       {teamOwners.map((o) => <option key={o} value={o} />)}
                     </datalist>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Due Date</label>
+                  </Prop>
+
+                  <Prop label="Due">
                     <input type="date" value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  {(form.adFormat === 'video' || form.adFormat === 'ugc') && (
-                    <div>
-                      <label className="text-xs font-medium block mb-1.5">
-                        Ad Length <span className="text-muted-foreground font-normal">(optional)</span>
-                      </label>
-                      <select value={form.adLength} onChange={(e) => set('adLength', e.target.value)}
-                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                        <option value="">Select length</option>
-                        {['0:06', '0:15', '0:30', '0:45', '1:00', '1:30', '2:00+'].map((l) => <option key={l} value={l}>{l}</option>)}
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                {/* Links */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Inspiration Link</label>
-                    <input value={form.inspirationLink} onChange={(e) => set('inspirationLink', e.target.value)}
-                      placeholder="https://..."
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Reference Creative</label>
-                    <input value={form.referenceCreative} onChange={(e) => set('referenceCreative', e.target.value)}
-                      placeholder="Asset the designer should use"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-                {/* Creative gets its own row: it's the tallest control on the
-                    tab, and pairing it with a one-line input left a dead gap
-                    beside it. */}
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">
-                    Creative
-                    {form.adFormat === 'carousel' && (
-                      <span className="text-muted-foreground font-normal"> (2–10 cards)</span>
-                    )}
-                  </label>
-                  <CreativeInput
-                    value={form.creativeLink}
-                    onChange={(v) => set('creativeLink', v)}
-                    multiple={form.adFormat === 'carousel'}
-                  />
-                  {form.adFormat === 'carousel' && (
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      {assetCount === 0
-                        ? 'Add 2–10 cards.'
-                        : `${assetCount} card${assetCount !== 1 ? 's' : ''}${assetCount < 2 ? ' — a carousel needs at least 2' : ''}`}
-                    </p>
-                  )}
-                </div>
-
-                {/* Two single-line link fields, so the row heights match */}
-                <div className="grid grid-cols-2 gap-3 items-start">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Frame.io Link</label>
-                    <input value={form.frameioLink} onChange={(e) => set('frameioLink', e.target.value)}
-                      placeholder="Frame.io review link"
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Final Deliverable</label>
-                    <div className="flex gap-2">
-                      <input value={form.finalDeliverable} onChange={(e) => set('finalDeliverable', e.target.value)}
-                        placeholder="Finished asset link"
-                        className="flex-1 min-w-0 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                      {form.finalDeliverable && (
-                        <a href={form.finalDeliverable} target="_blank" rel="noreferrer"
-                          title="View creative"
-                          className="border border-border rounded-lg px-3 py-2 text-muted-foreground hover:text-primary hover:border-primary transition-colors flex items-center flex-shrink-0">
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-
-              </>
+                      // Native date inputs ignore placeholder styling; mute the
+                      // empty state to match the other properties.
+                      className={cn(GHOST, !form.dueDate && 'text-muted-foreground/50')} />
+                  </Prop>
+                </aside>
+              </div>
             )}
 
             {tab === 'copy' && (
-              <>
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium">Primary Text</label>
-                    <CopyBankPicker entries={bankPrimary} onPick={(v) => set('primaryText', v)} />
+              // Writing on the left, the ad itself on the right, updating as
+              // you type — so copy is judged in the format it'll actually run.
+              <div className="grid md:grid-cols-[minmax(0,1fr)_340px] md:divide-x divide-border min-h-full">
+                <div className="px-7 py-6 space-y-5 min-w-0">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold">Primary text</label>
+                      <div className="flex items-center gap-2">
+                        <Count n={form.primaryText.length} max={125} />
+                        <CopyBankPicker entries={bankPrimary} onPick={(v) => set('primaryText', v)} />
+                      </div>
+                    </div>
+                    <textarea value={form.primaryText} onChange={(e) => set('primaryText', e.target.value)}
+                      placeholder="The main body copy — what someone reads before they decide to stop scrolling."
+                      rows={5} className={cn(FIELD, 'resize-none leading-relaxed')} />
                   </div>
-                  <textarea value={form.primaryText} onChange={(e) => set('primaryText', e.target.value)}
-                    placeholder="The main body copy for this ad..."
-                    rows={5}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-1">{form.primaryText.length} characters</p>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium">Headline</label>
-                    <CopyBankPicker entries={bankHeadlines} onPick={(v) => set('headline', v)} />
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold">Headline</label>
+                      <div className="flex items-center gap-2">
+                        <Count n={form.headline.length} max={40} />
+                        <CopyBankPicker entries={bankHeadlines} onPick={(v) => set('headline', v)} />
+                      </div>
+                    </div>
+                    <input value={form.headline} onChange={(e) => set('headline', e.target.value)}
+                      placeholder="Short and punchy" className={FIELD} />
                   </div>
-                  <input value={form.headline} onChange={(e) => set('headline', e.target.value)}
-                    placeholder="Short, punchy headline"
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium">Description (optional)</label>
-                    <CopyBankPicker entries={bankDescriptions} onPick={(v) => set('adDescription', v)} />
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold">
+                        Description <span className="font-normal text-muted-foreground">optional</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <Count n={form.adDescription.length} max={30} />
+                        <CopyBankPicker entries={bankDescriptions} onPick={(v) => set('adDescription', v)} />
+                      </div>
+                    </div>
+                    <input value={form.adDescription} onChange={(e) => set('adDescription', e.target.value)}
+                      placeholder="Shown under the headline" className={FIELD} />
                   </div>
-                  <input value={form.adDescription} onChange={(e) => set('adDescription', e.target.value)}
-                    placeholder="Ad link description"
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                {/* ── Destination ── */}
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-2 border-t border-border">
-                  Destination
-                </p>
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium">Landing Page</label>
-                    <CopyBankPicker entries={bankLandingPages} onPick={(v) => set('landingPage', v)} />
+
+                  <div className="border-t border-border pt-5 grid grid-cols-[minmax(0,1fr)_200px] gap-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-semibold">Landing page</label>
+                        <CopyBankPicker entries={bankLandingPages} onPick={(v) => set('landingPage', v)} />
+                      </div>
+                      <input value={form.landingPage} onChange={(e) => set('landingPage', e.target.value)}
+                        placeholder="https://brand.com/product" className={FIELD} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold block mb-1.5">Button</label>
+                      <select value={form.metaCTA} onChange={(e) => set('metaCTA', e.target.value)} className={FIELD}>
+                        <option value="">Choose…</option>
+                        {META_CTAS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                    </div>
                   </div>
-                  <input value={form.landingPage} onChange={(e) => set('landingPage', e.target.value)}
-                    placeholder="https://brand.com/product"
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-1">Where the ad sends people. Set once — Launch Setup reads it from here.</p>
                 </div>
 
-                <div>
-                  <label className="text-xs font-medium block mb-1.5">Call to Action</label>
-                  <select value={form.metaCTA} onChange={(e) => set('metaCTA', e.target.value)}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                    <option value="">Select CTA</option>
-                    {META_CTAS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
-                  <p className="text-[11px] text-muted-foreground mt-1">The button on the ad.</p>
-                </div>
-              </>
+                <aside className="px-5 py-6 bg-muted/20">
+                  <div className="md:sticky md:top-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Preview</p>
+                    <AdPreview form={form} asset={previewAsset} />
+                    <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+                      Approximate Facebook feed layout. Meta adjusts it per placement.
+                    </p>
+                  </div>
+                </aside>
+              </div>
             )}
 
             {tab === 'launch' && (
@@ -977,47 +1007,17 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                   )
                 )}
 
-                {/* ── Ad / Creative ── */}
-                {/* ── What will go live ──
-                    Read-only on purpose: copy, landing page and CTA are owned
-                    by Ad Setup. Having editable duplicates here meant two
-                    fields for one value, with no clue which one won. */}
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Preview</p>
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <div className="flex gap-3 p-3">
-                    {previewAsset ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={previewAsset} alt="" className="w-20 h-20 rounded-md object-cover bg-secondary flex-shrink-0"
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
-                    ) : (
-                      <div className="w-20 h-20 rounded-md bg-secondary flex items-center justify-center flex-shrink-0">
-                        <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs text-foreground line-clamp-2">
-                        {form.primaryText || <span className="text-muted-foreground italic">No primary text yet</span>}
-                      </p>
-                      <p className="text-sm font-semibold mt-1.5">
-                        {form.headline || <span className="text-muted-foreground font-normal italic">No headline yet</span>}
-                      </p>
-                      {form.adDescription && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{form.adDescription}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-t border-border">
-                    <p className="text-[11px] text-muted-foreground font-mono truncate flex-1 min-w-0">
-                      {form.landingPage || 'No landing page set'}
-                    </p>
-                    <span className="text-[10px] font-semibold bg-secondary border border-border rounded px-2 py-1 flex-shrink-0">
-                      {META_CTAS.find((c) => c.value === form.metaCTA)?.label ?? 'No CTA'}
-                    </span>
+                {/* What will go live — the same preview as Ad Setup, read-only.
+                    Copy, landing page and button are edited there, once. */}
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Preview</p>
+                  <div className="max-w-sm">
+                    <AdPreview form={form} asset={previewAsset} />
                   </div>
                   {(!form.landingPage || !form.metaCTA || !form.primaryText || !form.headline) && (
                     <button type="button" onClick={() => setTab('copy')}
-                      className="w-full text-[11px] text-primary px-3 py-2 border-t border-border hover:bg-muted/30 transition-colors text-left">
-                      Finish this in Ad Setup →
+                      className="text-[11px] text-primary mt-2 hover:underline">
+                      Finish the copy in Ad Setup →
                     </button>
                   )}
                 </div>
