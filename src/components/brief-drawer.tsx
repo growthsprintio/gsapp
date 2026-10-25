@@ -21,7 +21,9 @@ const GHOST = 'w-full bg-transparent border border-transparent rounded-md px-2 p
 function Prop({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[68px_minmax(0,1fr)] items-start gap-1">
-      <span className="text-xs text-muted-foreground pt-2 px-2 truncate" title={label}>{label}</span>
+      {/* Wraps rather than truncating: these include workspace-named
+          variables, and "Landing…" says nothing. */}
+      <span className="text-xs text-muted-foreground pt-2 px-2 leading-tight break-words">{label}</span>
       <div className="min-w-0">{children}</div>
     </div>
   );
@@ -511,10 +513,14 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
         primaryText: editItem.primaryText || '',
         headline: editItem.headline || '',
         adDescription: editItem.adDescription || '',
-        inspirationLink: editItem.inspirationLink || '',
+        // Reference asset was folded into Inspiration & assets: both were
+        // links handed to the designer. Carry any saved one across so it
+        // isn't lost, and clear the old field so it isn't counted twice.
+        inspirationLink: [editItem.inspirationLink, editItem.referenceCreative]
+          .filter((v) => v && v.trim()).join('\n'),
         creativeLink: editItem.creativeLink || '',
         frameioLink: editItem.frameioLink || '',
-        referenceCreative: editItem.referenceCreative || '',
+        referenceCreative: '',
         finalDeliverable: editItem.finalDeliverable || '',
         landingPage: editItem.landingPage || '',
         product: editItem.product || '',
@@ -802,13 +808,12 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                           that wrap sideways — ten links is two short rows, not
                           ten full-width inputs. */}
                       <div className="grid grid-cols-[120px_minmax(0,1fr)] items-start gap-2">
-                        <span className="text-xs text-muted-foreground pt-2">Inspiration</span>
+                        <span className="text-xs text-muted-foreground pt-2 leading-tight">Inspiration &amp; assets</span>
                         <LinkChips value={form.inspirationLink} onChange={(v) => set('inspirationLink', v)}
-                          placeholder="Paste a link to an ad or post" />
+                          placeholder="Ads to riff on, product shots, logos…" />
                       </div>
                       {([
-                        ['referenceCreative', 'Reference asset', 'Asset the designer should use'],
-                        ['frameioLink', 'Frame.io', 'Review link'],
+                        ['frameioLink', 'Review link', 'Frame.io, Figma or any review link'],
                         ['finalDeliverable', 'Final deliverable', 'Finished asset link'],
                       ] as const).map(([key, label, ph]) => (
                         <div key={key} className="grid grid-cols-[120px_minmax(0,1fr)_auto] items-center gap-2">
