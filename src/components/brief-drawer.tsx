@@ -7,9 +7,11 @@ import {
   FORMAT_OPTIONS, SIZE_OPTIONS, type RoadmapItem, type AdFormat,
   META_CTAS,
 } from '@/lib/types';
-import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle, Image as ImageIcon, ArrowRight, Copy as CopyIcon } from 'lucide-react';
+import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle, Image as ImageIcon, ArrowRight, Copy as CopyIcon, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef } from 'react';
+import { rankForBrief } from '@/lib/copy-bank';
+import type { CopyBankEntry } from '@/lib/types';
 import { CreativeInput } from '@/components/asset-drop';
 
 const DEFAULT_ANGLES = ['Pain Point', 'Social Proof', 'Hook', 'Curiosity', 'Urgency', 'Lifestyle', 'Before/After', 'Tutorial', 'Comparison', 'Testimonial', 'UGC Raw', 'Founder Story'];
@@ -323,39 +325,66 @@ function TagMultiSelect({ selected, onChange, options, placeholder, onCreate, gh
   );
 }
 
-/** Small "Use from bank" dropdown that drops a saved entry into a copy field. */
-function CopyBankPicker({ entries, onPick }: {
-  entries: { id: string; content: string; url?: string; tags: string[] }[];
+/**
+ * Pick copy from the bank while writing a brief.
+ *
+ * Ranked against the brief: lines written for this brief's product and angle
+ * come first, then winners — so the right copy is at the top without anyone
+ * filtering. Searchable once the bank gets long.
+ */
+function CopyBankPicker({ entries, onPick, brief }: {
+  entries: CopyBankEntry[];
   onPick: (value: string) => void;
+  brief?: { product?: string; angle?: string };
 }) {
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
   if (entries.length === 0) return null;
+
+  const ranked = rankForBrief(entries, brief ?? {})
+    .filter((e) => !q.trim() || e.content.toLowerCase().includes(q.trim().toLowerCase()));
+  const isMatch = (e: CopyBankEntry) => {
+    const has = (list: string | undefined, v?: string) =>
+      !!v && (list ?? '').toLowerCase().split(',').map((s) => s.trim()).includes(v.toLowerCase());
+    return has(brief?.product, e.product) || has(brief?.angle, e.angle);
+  };
 
   return (
     <div className="relative">
       <button type="button" onClick={() => setOpen(!open)}
         className="flex items-center gap-1 text-[11px] text-primary hover:underline">
-        Use from bank <ChevronDown className={cn('w-3 h-3 transition-transform', open && 'rotate-180')} />
+        From bank <ChevronDown className={cn('w-3 h-3 transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-50 w-72 bg-card border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto py-1">
-            {entries.map((e) => (
-              <button key={e.id} type="button"
-                onClick={() => { onPick(e.url || e.content); setOpen(false); }}
-                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors">
-                <p className="text-xs line-clamp-2">{e.content}</p>
-                {e.url && <p className="text-[10px] text-primary truncate">{e.url}</p>}
-                {e.tags.length > 0 && (
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    {e.tags.slice(0, 3).map((t) => (
-                      <span key={t} className="text-[9px] text-muted-foreground border border-border rounded-full px-1.5">{t}</span>
-                    ))}
-                  </div>
-                )}
-              </button>
-            ))}
+          <div className="absolute right-0 top-full mt-1 z-50 w-80 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+            {entries.length > 5 && (
+              <div className="p-2 border-b border-border">
+                <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search"
+                  className="w-full text-xs bg-transparent border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-primary" />
+              </div>
+            )}
+            <div className="max-h-64 overflow-y-auto py-1">
+              {ranked.length === 0 && <p className="text-xs text-muted-foreground px-3 py-3">No matches.</p>}
+              {ranked.map((e) => (
+                <button key={e.id} type="button"
+                  onClick={() => { onPick(e.url || e.content); setOpen(false); setQ(''); }}
+                  className="w-full text-left px-3 py-2 hover:bg-muted transition-colors">
+                  <p className="text-xs line-clamp-2">{e.content}</p>
+                  {e.url && <p className="text-[10px] text-primary truncate">{e.url}</p>}
+                  {(e.winner || e.angle || e.product) && (
+                    <div className="flex items-center gap-1 mt-1 flex-wrap">
+                      {e.winner && <Star className="w-3 h-3 fill-primary text-primary" />}
+                      {[e.angle, e.product].filter(Boolean).map((t) => (
+                        <span key={t} className="text-[9px] text-muted-foreground border border-border rounded px-1.5">{t}</span>
+                      ))}
+                      {isMatch(e) && <span className="text-[9px] text-primary font-medium">For this brief</span>}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </>
       )}
@@ -939,7 +968,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                       <label className="text-xs font-semibold">Primary text</label>
                       <div className="flex items-center gap-2">
                         <Count n={form.primaryText.length} max={125} />
-                        <CopyBankPicker entries={bankPrimary} onPick={(v) => set('primaryText', v)} />
+                        <CopyBankPicker brief={{ product: form.product, angle: form.angle }} entries={bankPrimary} onPick={(v) => set('primaryText', v)} />
                       </div>
                     </div>
                     <textarea value={form.primaryText} onChange={(e) => set('primaryText', e.target.value)}
@@ -952,7 +981,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                       <label className="text-xs font-semibold">Headline</label>
                       <div className="flex items-center gap-2">
                         <Count n={form.headline.length} max={40} />
-                        <CopyBankPicker entries={bankHeadlines} onPick={(v) => set('headline', v)} />
+                        <CopyBankPicker brief={{ product: form.product, angle: form.angle }} entries={bankHeadlines} onPick={(v) => set('headline', v)} />
                       </div>
                     </div>
                     <input value={form.headline} onChange={(e) => set('headline', e.target.value)}
@@ -966,7 +995,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                       </label>
                       <div className="flex items-center gap-2">
                         <Count n={form.adDescription.length} max={30} />
-                        <CopyBankPicker entries={bankDescriptions} onPick={(v) => set('adDescription', v)} />
+                        <CopyBankPicker brief={{ product: form.product, angle: form.angle }} entries={bankDescriptions} onPick={(v) => set('adDescription', v)} />
                       </div>
                     </div>
                     <input value={form.adDescription} onChange={(e) => set('adDescription', e.target.value)}

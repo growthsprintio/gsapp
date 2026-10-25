@@ -38,6 +38,10 @@ interface AppState {
 
   // Copy bank
   addCopyEntry: (entry: Omit<CopyBankEntry, 'id' | 'usageCount' | 'createdAt'>) => void;
+  addCopyEntries: (entries: Omit<CopyBankEntry, 'id' | 'usageCount' | 'createdAt'>[]) => void;
+  updateCopyEntry: (id: string, updates: Partial<CopyBankEntry>) => void;
+  deleteCopyEntry: (id: string) => void;
+  restoreCopyEntry: (entry: CopyBankEntry) => void;
 
   // Creative bank (external links only)
   creativeBank: CreativeBankEntry[];
@@ -210,6 +214,32 @@ export const useAppStore = create<AppState>()(
             { ...entry, id: nanoid(), usageCount: 0, createdAt: new Date().toISOString() },
           ],
         })),
+
+      // The bank could only ever be added to — no edit, no delete — so a typo
+      // was permanent.
+      addCopyEntries: (entries) =>
+        set((s) => {
+          const now = new Date().toISOString();
+          return {
+            copyBank: [
+              ...s.copyBank,
+              ...entries.map((e) => ({ ...e, id: nanoid(), usageCount: 0, createdAt: now })),
+            ],
+          };
+        }),
+
+      updateCopyEntry: (id, updates) =>
+        set((s) => ({
+          copyBank: s.copyBank.map((e) =>
+            e.id === id ? { ...e, ...updates, updatedAt: new Date().toISOString() } : e),
+        })),
+
+      deleteCopyEntry: (id) =>
+        set((s) => ({ copyBank: s.copyBank.filter((e) => e.id !== id) })),
+
+      /** Put a deleted entry back exactly as it was — powers Undo. */
+      restoreCopyEntry: (entry) =>
+        set((s) => (s.copyBank.some((e) => e.id === entry.id) ? s : { copyBank: [...s.copyBank, entry] })),
 
       addCreativeEntry: (entry) =>
         set((s) => ({

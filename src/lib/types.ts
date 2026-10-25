@@ -107,8 +107,19 @@ export interface CopyBankEntry {
   /** For product / landing page entries — the destination URL. */
   url?: string;
   tags: string[];
+  /**
+   * @deprecated Never incremented anywhere, so it always read 0. Usage is now
+   * computed from the briefs themselves — see usageOf in lib/copy-bank.
+   */
   usageCount: number;
   createdAt: string;
+  updatedAt?: string;
+  /** The angle this copy was written for — an entry in the Angle bank. */
+  angle?: string;
+  /** The product this copy is for — an entry in the Product bank. */
+  product?: string;
+  /** Proven performer: sorts first and can be filtered to. */
+  winner?: boolean;
 }
 
 export interface CreativeBankEntry {
