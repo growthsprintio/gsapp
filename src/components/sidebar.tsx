@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Map, Type, Settings,
@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useCurrentUser } from '@/lib/use-current-user';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { createSupabaseBrowser, supabaseConfigured } from '@/lib/supabase';
 
 const NAV = [
@@ -21,6 +21,37 @@ const NAV = [
   { href: '/team', label: 'Team', icon: Users },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
+
+/**
+ * Library / Briefs under Creatives. Its own component because it reads the
+ * query string, and useSearchParams needs a Suspense boundary.
+ */
+function CreativesSubnav() {
+  const tab = useSearchParams().get('tab');
+  // Work sent back and not yet looked at — worth a nudge from anywhere.
+  const waiting = useAppStore((s) => (s.outreach || []).filter((b) => b.status === 'submitted').length);
+  const items = [
+    { key: 'library', label: 'Library', href: '/creative-bank', on: tab !== 'briefs' },
+    { key: 'briefs', label: 'Briefs', href: '/creative-bank?tab=briefs', on: tab === 'briefs', badge: waiting },
+  ];
+  return (
+    <div className="ml-4 pl-3 border-l border-border mt-0.5 mb-1 space-y-0.5">
+      {items.map((i) => (
+        <Link key={i.key} href={i.href}
+          className={cn(
+            'flex items-center px-2 py-1.5 rounded-md text-xs transition-colors',
+            i.on ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          )}>
+          <span className="flex-1 truncate">{i.label}</span>
+          {!!i.badge && (
+            <span title={`${i.badge} with work to review`}
+              className="min-w-4 h-4 px-1 rounded-full bg-primary text-white text-[11px] leading-4 text-center font-medium">{i.badge}</span>
+          )}
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 function AccountSwitcher() {
   const router = useRouter();
@@ -164,6 +195,7 @@ export function Sidebar() {
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           const isRoadmaps = href === '/roadmaps';
+          const isCreatives = href === '/creative-bank';
           return (
             <div key={href}>
               <div className={cn(
@@ -182,10 +214,15 @@ export function Sidebar() {
                     title={roadmapsOpen ? 'Collapse' : 'Expand'}>
                     <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', !roadmapsOpen && '-rotate-90')} />
                   </button>
-                ) : active ? (
+                ) : active && !isCreatives ? (
                   <ChevronRight className="w-3 h-3 text-primary opacity-60 mr-2" />
                 ) : null}
               </div>
+
+              {/* Creatives sections — only while you're in them */}
+              {isCreatives && active && (
+                <Suspense fallback={null}><CreativesSubnav /></Suspense>
+              )}
 
               {/* Roadmap sub-list */}
               {isRoadmaps && roadmapsOpen && activeRoadmaps.length > 0 && (

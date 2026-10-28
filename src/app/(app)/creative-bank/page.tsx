@@ -3,7 +3,7 @@
 import { useAppStore } from '@/lib/store';
 import { CreativeInput } from '@/components/asset-drop';
 import { Suspense, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { BriefsTab } from './briefs-tab';
 import { Plus, Copy, Check, Link2, ExternalLink, Trash2, LayoutGrid, List, Clapperboard } from 'lucide-react';
 import { FORMAT_OPTIONS, type CreativeBankEntry, type AdFormat } from '@/lib/types';
@@ -243,14 +243,14 @@ export default function CreativesPage() {
 }
 
 function Creatives() {
+  // The URL is the source of truth so the sidebar's Library / Briefs links
+  // and these tabs always agree.
   const params = useSearchParams();
-  const [tab, setTab] = useState<Tab>(params.get('tab') === 'briefs' ? 'briefs' : 'library');
+  const router = useRouter();
+  const tab: Tab = params.get('tab') === 'briefs' ? 'briefs' : 'library';
   const briefCount = useAppStore((s) => (s.outreach || []).length);
 
-  const choose = (t: Tab) => {
-    setTab(t);
-    window.history.replaceState(null, '', t === 'briefs' ? '?tab=briefs' : window.location.pathname);
-  };
+  const choose = (t: Tab) => router.replace(t === 'briefs' ? '/creative-bank?tab=briefs' : '/creative-bank', { scroll: false });
 
   return (
     <div className="px-8 pt-7 pb-10 max-w-5xl">
