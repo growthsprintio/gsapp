@@ -2,7 +2,9 @@
 
 import { useAppStore } from '@/lib/store';
 import { CreativeInput } from '@/components/asset-drop';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { BriefsTab } from './briefs-tab';
 import { Plus, Copy, Check, Link2, ExternalLink, Trash2, LayoutGrid, List, Clapperboard } from 'lucide-react';
 import { FORMAT_OPTIONS, type CreativeBankEntry, type AdFormat } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -103,7 +105,7 @@ function CreativeRow({ entry }: { entry: CreativeBankEntry }) {
   );
 }
 
-export default function CreativeBankPage() {
+function LibraryTab() {
   const creativeBank = useAppStore((s) => s.creativeBank) || [];
   const addCreativeEntry = useAppStore((s) => s.addCreativeEntry);
   const [showNew, setShowNew] = useState(false);
@@ -126,17 +128,14 @@ export default function CreativeBankPage() {
   };
 
   return (
-    <div className="px-8 py-8 max-w-4xl">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold">Creative Bank</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Your creative library, referenced by link — Drive, Frame.io, CDN. Nothing is hosted here.
-          </p>
-        </div>
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-sm text-muted-foreground">
+          Finished ads and reference assets. Upload files or link to Drive, Frame.io or a CDN.
+        </p>
         <button onClick={() => setShowNew(!showNew)}
-          className="flex items-center gap-2 bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
-          <Plus className="w-4 h-4" /> Add by Link
+          className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium pl-3.5 pr-4 h-9 rounded-full shadow-sm hover:bg-primary/90 transition-colors flex-shrink-0">
+          <Plus className="w-4 h-4" /> Add creative
         </button>
       </div>
 
@@ -232,6 +231,45 @@ export default function CreativeBankPage() {
           {filtered.map((e) => <CreativeRow key={e.id} entry={e} />)}
         </div>
       )}
+    </div>
+  );
+}
+
+type Tab = 'library' | 'briefs';
+
+export default function CreativesPage() {
+  // useSearchParams needs a Suspense boundary in this Next version.
+  return <Suspense><Creatives /></Suspense>;
+}
+
+function Creatives() {
+  const params = useSearchParams();
+  const [tab, setTab] = useState<Tab>(params.get('tab') === 'briefs' ? 'briefs' : 'library');
+  const briefCount = useAppStore((s) => (s.outreach || []).length);
+
+  const choose = (t: Tab) => {
+    setTab(t);
+    window.history.replaceState(null, '', t === 'briefs' ? '?tab=briefs' : window.location.pathname);
+  };
+
+  return (
+    <div className="px-8 pt-7 pb-10 max-w-5xl">
+      <h1 className="text-[26px] leading-tight font-semibold">Creatives</h1>
+      <p className="text-sm text-muted-foreground mt-1">Your creative library, and the briefs you send to creators and designers.</p>
+
+      <div className="flex items-center gap-6 border-b border-border mt-6 mb-6">
+        {([['library', 'Library', null], ['briefs', 'Briefs', briefCount]] as const).map(([key, label, count]) => (
+          <button key={key} onClick={() => choose(key)}
+            className={cn('relative h-10 text-sm font-medium transition-colors',
+              tab === key ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+            {label}
+            {count ? <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">{count}</span> : null}
+            {tab === key && <span className="absolute left-0 right-0 -bottom-px h-0.5 rounded-full bg-primary" />}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'library' ? <LibraryTab /> : <BriefsTab />}
     </div>
   );
 }

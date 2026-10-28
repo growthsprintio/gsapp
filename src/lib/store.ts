@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { createWorkspaceStorage } from './workspace-storage';
-import type { Account, Roadmap, RoadmapItem, CopyBankEntry, CreativeBankEntry, CreativeStatus, NamingConvention } from './types';
+import type { Account, Roadmap, RoadmapItem, CopyBankEntry, CreativeBankEntry, CreativeStatus, NamingConvention, OutreachBrief } from './types';
 import { nanoid, DEFAULT_NAMING_CONVENTION, buildDuplicateFields } from './utils';
 
 interface AppState {
@@ -48,6 +48,12 @@ interface AppState {
   addCreativeEntry: (entry: Omit<CreativeBankEntry, 'id' | 'createdAt'>) => void;
   deleteCreativeEntry: (id: string) => void;
 
+  // Briefs for people outside the team
+  outreach: OutreachBrief[];
+  addOutreach: (brief: Omit<OutreachBrief, 'id' | 'createdAt' | 'updatedAt'>) => string;
+  updateOutreach: (id: string, updates: Partial<OutreachBrief>) => void;
+  deleteOutreach: (id: string) => void;
+
   // Auth
   setUser: (user: AppState['user']) => void;
   logout: () => void;
@@ -62,6 +68,7 @@ export const useAppStore = create<AppState>()(
       roadmaps: [],
       copyBank: [],
       creativeBank: [],
+      outreach: [],
       user: null,
       namingConvention: DEFAULT_NAMING_CONVENTION,
 
@@ -252,6 +259,22 @@ export const useAppStore = create<AppState>()(
       deleteCreativeEntry: (id) =>
         set((s) => ({ creativeBank: (s.creativeBank || []).filter((c) => c.id !== id) })),
 
+      addOutreach: (brief) => {
+        const id = nanoid();
+        const now = new Date().toISOString();
+        set((s) => ({ outreach: [{ ...brief, id, createdAt: now, updatedAt: now }, ...(s.outreach || [])] }));
+        return id;
+      },
+
+      updateOutreach: (id, updates) =>
+        set((s) => ({
+          outreach: (s.outreach || []).map((b) =>
+            b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b),
+        })),
+
+      deleteOutreach: (id) =>
+        set((s) => ({ outreach: (s.outreach || []).filter((b) => b.id !== id) })),
+
       setUser: (user) => set({ user }),
       logout: () => set({ user: null }),
     }),
@@ -266,6 +289,7 @@ export const useAppStore = create<AppState>()(
         roadmaps: [],
         copyBank: [],
         creativeBank: [],
+        outreach: [],
         user: null,
       }),
       // Content lives on the server when Supabase is configured, so a

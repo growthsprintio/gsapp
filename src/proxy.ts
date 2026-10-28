@@ -59,7 +59,8 @@ export async function proxy(req: NextRequest) {
   return unauthorized();
 }
 
-// Public: login, signup, auth endpoints, static assets.
+// Public: login, signup, auth endpoints, static assets, and shared briefs
+// (/b/{token} plus the endpoint recipients send their work back through).
 export const config = {
-  matcher: ['/((?!login|signup|reset-password|auth/|api/auth|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!login|signup|reset-password|auth/|api/auth|api/public/|b/|_next/static|_next/image|favicon.ico).*)'],
 };

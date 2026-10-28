@@ -137,6 +137,57 @@ export interface CreativeBankEntry {
   createdAt: string;
 }
 
+/**
+ * A brief for someone outside the team — an influencer, freelance designer or
+ * editor. Unlike a roadmap brief it's written to be read cold, shared by link
+ * (no login) and the recipient sends their work back through that link.
+ */
+export type OutreachKind = 'creator' | 'design';
+export type OutreachStatus = 'draft' | 'sent' | 'viewed' | 'submitted' | 'approved';
+
+export interface OutreachDeliverable {
+  id: string;
+  label: string;
+  size?: string;
+  length?: string;
+}
+
+export interface OutreachSubmission {
+  url: string;
+  note?: string;
+  at: string;
+}
+
+export interface OutreachBrief {
+  id: string;
+  kind: OutreachKind;
+  title: string;
+  status: OutreachStatus;
+  recipientName?: string;
+  recipientEmail?: string;
+  /** Creator's social handle, e.g. @maya.makes */
+  recipientHandle?: string;
+  product?: string;
+  angle?: string;
+  overview?: string;
+  keyMessages?: string;
+  hooks?: string;
+  dos?: string;
+  donts?: string;
+  deliverables: OutreachDeliverable[];
+  references: string[];
+  dueDate?: string;
+  compensation?: string;
+  usageRights?: string;
+  /** Set the first time it's shared; the public page lives at /b/{token}. */
+  shareToken?: string;
+  sentAt?: string;
+  viewedAt?: string;
+  submissions?: OutreachSubmission[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TeamMember {
   id: string;
   email: string;

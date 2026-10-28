@@ -17,7 +17,7 @@ const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/roadmaps', label: 'Roadmaps', icon: Map },
   { href: '/copy-bank', label: 'Copy Bank', icon: Type },
-  { href: '/creative-bank', label: 'Creative Bank', icon: Clapperboard },
+  { href: '/creative-bank', label: 'Creatives', icon: Clapperboard },
   { href: '/team', label: 'Team', icon: Users },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
