@@ -139,7 +139,7 @@ export default function AccountPage() {
           <div className="space-y-2">
             {workspaces.map((w) => (
               <div key={w.id} className="flex items-center gap-3 border border-border rounded-lg px-3 py-2.5">
-                <div className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                <div className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center text-[11px] font-bold flex-shrink-0">
                   {w.name.split(' ').map((s) => s[0]).join('').slice(0, 2).toUpperCase()}
                 </div>
                 <p className="text-sm flex-1 min-w-0 truncate">{w.name}</p>

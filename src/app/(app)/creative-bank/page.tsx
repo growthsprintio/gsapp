@@ -41,14 +41,14 @@ function CreativeTile({ entry }: { entry: CreativeBankEntry }) {
       <div className="p-3.5">
         <div className="flex items-start justify-between gap-2">
           <p className="text-sm font-medium leading-snug">{entry.title}</p>
-          <span className="text-[10px] font-medium border border-border rounded-full px-2 py-0.5 capitalize flex-shrink-0 text-muted-foreground">
+          <span className="text-[11px] font-medium border border-border rounded-full px-2 py-0.5 capitalize flex-shrink-0 text-muted-foreground">
             {entry.format}
           </span>
         </div>
         {entry.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {entry.tags.map((tag) => (
-              <span key={tag} className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5">{tag}</span>
+              <span key={tag} className="text-[11px] text-muted-foreground border border-border rounded-full px-2 py-0.5">{tag}</span>
             ))}
           </div>
         )}
@@ -82,7 +82,7 @@ function CreativeRow({ entry }: { entry: CreativeBankEntry }) {
         <p className="text-sm font-medium truncate">{entry.title}</p>
         <p className="text-[11px] text-muted-foreground truncate">{entry.url}</p>
       </div>
-      <span className="text-[10px] font-medium border border-border rounded-full px-2 py-0.5 capitalize flex-shrink-0 text-muted-foreground">
+      <span className="text-[11px] font-medium border border-border rounded-full px-2 py-0.5 capitalize flex-shrink-0 text-muted-foreground">
         {entry.format}
       </span>
       <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">

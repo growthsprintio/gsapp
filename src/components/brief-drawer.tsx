@@ -45,7 +45,7 @@ const FIELD = 'w-full bg-transparent border border-border rounded-lg px-3 py-2 t
 function Count({ n, max }: { n: number; max: number }) {
   if (n === 0) return null;
   return (
-    <span className={cn('text-[10px] tabular-nums', n > max ? 'text-amber-600 font-medium' : 'text-muted-foreground')}
+    <span className={cn('text-[11px] tabular-nums', n > max ? 'text-amber-600 font-medium' : 'text-muted-foreground')}
       title={n > max ? `Meta shows about ${max} characters before cutting off` : `Meta recommends up to ${max}`}>
       {n}/{max}
     </span>
@@ -67,7 +67,7 @@ function AdPreview({ form, asset }: {
         <div className="w-7 h-7 rounded-full bg-secondary flex-shrink-0" />
         <div className="min-w-0">
           <p className="text-[11px] font-semibold leading-tight">Your Page</p>
-          <p className="text-[10px] text-muted-foreground leading-tight">Sponsored</p>
+          <p className="text-[11px] text-muted-foreground leading-tight">Sponsored</p>
         </div>
       </div>
       <p className={cn('px-3 pt-2 pb-2.5 text-xs leading-relaxed line-clamp-3 whitespace-pre-line', !form.primaryText && 'text-muted-foreground/60 italic')}>
@@ -84,13 +84,13 @@ function AdPreview({ form, asset }: {
       </div>
       <div className="flex items-center gap-2 px-3 py-2.5 bg-muted/40">
         <div className="min-w-0 flex-1">
-          {domain && <p className="text-[9px] uppercase tracking-wide text-muted-foreground truncate">{domain}</p>}
+          {domain && <p className="text-[11px] uppercase tracking-wide text-muted-foreground truncate">{domain}</p>}
           <p className={cn('text-xs font-semibold truncate', !form.headline && 'text-muted-foreground/60 font-normal italic')}>
             {form.headline || 'Headline'}
           </p>
-          {form.adDescription && <p className="text-[10px] text-muted-foreground truncate">{form.adDescription}</p>}
+          {form.adDescription && <p className="text-[11px] text-muted-foreground truncate">{form.adDescription}</p>}
         </div>
-        <span className={cn('text-[10px] font-semibold rounded px-2.5 py-1.5 flex-shrink-0',
+        <span className={cn('text-[11px] font-semibold rounded px-2.5 py-1.5 flex-shrink-0',
           cta ? 'bg-secondary border border-border' : 'border border-dashed border-border text-muted-foreground')}>
           {cta ?? 'Button'}
         </span>
@@ -376,14 +376,14 @@ function CopyBankPicker({ entries, onPick, brief }: {
                   onClick={() => { onPick(e.url || e.content); setOpen(false); setQ(''); }}
                   className="w-full text-left px-3 py-2 hover:bg-muted transition-colors">
                   <p className="text-xs line-clamp-2">{e.content}</p>
-                  {e.url && <p className="text-[10px] text-primary truncate">{e.url}</p>}
+                  {e.url && <p className="text-[11px] text-primary truncate">{e.url}</p>}
                   {(e.winner || e.angle || e.product) && (
                     <div className="flex items-center gap-1 mt-1 flex-wrap">
                       {e.winner && <Star className="w-3 h-3 fill-primary text-primary" />}
                       {[e.angle, e.product].filter(Boolean).map((t) => (
-                        <span key={t} className="text-[9px] text-muted-foreground border border-border rounded px-1.5">{t}</span>
+                        <span key={t} className="text-[11px] text-muted-foreground border border-border rounded px-1.5">{t}</span>
                       ))}
-                      {isMatch(e) && <span className="text-[9px] text-primary font-medium">For this brief</span>}
+                      {isMatch(e) && <span className="text-[11px] text-primary font-medium">For this brief</span>}
                     </div>
                   )}
                 </button>
@@ -773,7 +773,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 )}>
                 <div className="flex items-center gap-1.5">
                   <span className={cn(
-                    'w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0',
+                    'w-4 h-4 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0',
                     done ? 'bg-primary text-white' : active ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground',
                   )}>
                     {done ? <Check className="w-2.5 h-2.5" /> : i + 1}
@@ -782,7 +782,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     {s.label}
                   </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5 truncate pl-5.5">
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate pl-5.5">
                   {done ? s.doneHint : stepState[s.id].missing[0] ?? s.hint}
                 </p>
               </button>
@@ -801,7 +801,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 <div className="px-7 py-6 space-y-6 min-w-0">
                   {/* Ad name — first, as metadata rather than a headline */}
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex-shrink-0">Ad name</span>
+                    <span className="text-xs font-medium text-muted-foreground flex-shrink-0">Ad name</span>
                     <input value={form.adName}
                       onChange={(e) => { setNameEdited(true); set('adName', e.target.value); }}
                       placeholder="Builds as you fill in the brief"
@@ -888,7 +888,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
                 {/* ── Properties ── */}
                 <aside className="px-4 py-6 bg-muted/20 space-y-0.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-2">Properties</p>
+                  <p className="text-xs font-medium text-muted-foreground px-2 mb-2">Properties</p>
 
                   <Prop label="Format">
                     <select value={form.adFormat} onChange={(e) => set('adFormat', e.target.value)}
@@ -1067,9 +1067,9 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
                 <aside className="px-5 py-6 bg-muted/20">
                   <div className="md:sticky md:top-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Preview</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-3">Preview</p>
                     <AdPreview form={form} asset={previewAsset} />
-                    <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+                    <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
                       Approximate Facebook feed layout. Meta adjusts it per placement.
                     </p>
                   </div>
@@ -1090,7 +1090,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 </div>
 
                 {/* ── Destination: existing campaign + ad set ── */}
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-1">Launch Into</p>
+                <p className="text-xs font-medium text-muted-foreground pt-1">Launch Into</p>
                 {!metaConfigured ? (
                   <p className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-lg px-3 py-2.5">
                     Connect Meta in Settings → Integrations to load your campaigns and ad sets.
@@ -1202,7 +1202,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 {/* What will go live — the same preview as Ad Setup, read-only.
                     Copy, landing page and button are edited there, once. */}
                 <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Preview</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Preview</p>
                   <div className="max-w-sm">
                     <AdPreview form={form} asset={previewAsset} />
                   </div>
@@ -1218,7 +1218,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 <div className="bg-muted/50 border border-border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-medium">Launch Readiness</p>
-                    <span className={cn('text-[10px] font-medium rounded-full px-2 py-0.5 border',
+                    <span className={cn('text-[11px] font-medium rounded-full px-2 py-0.5 border',
                       metaConfigured
                         ? 'bg-primary/5 border-primary/20 text-primary'
                         : 'bg-secondary border-border text-muted-foreground')}>

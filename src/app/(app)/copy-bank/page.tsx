@@ -25,7 +25,7 @@ function Counter({ type, n }: { type: CopyBankType; n: number }) {
   if (!max || n === 0) return null;
   return (
     <span title={n > max ? `Meta shows about ${max} characters before "See more"` : `Meta recommends up to ${max}`}
-      className={cn('text-[10px] tabular-nums flex-shrink-0', n > max ? 'text-amber-600 font-medium' : 'text-muted-foreground')}>
+      className={cn('text-[11px] tabular-nums flex-shrink-0', n > max ? 'text-amber-600 font-medium' : 'text-muted-foreground')}>
       {n}/{max}
     </span>
   );
@@ -53,7 +53,7 @@ function Usage({ used, live }: { used: number; live: number }) {
 }
 
 function Chip({ children }: { children: React.ReactNode }) {
-  return <span className="inline-flex items-center text-[10px] bg-secondary border border-border rounded px-1.5 py-0.5 max-w-[160px] truncate">{children}</span>;
+  return <span className="inline-flex items-center text-[11px] bg-secondary border border-border rounded px-1.5 py-0.5 max-w-[160px] truncate">{children}</span>;
 }
 
 /* ─────────────────────────────── quick add ─────────────────────────────── */
@@ -147,7 +147,7 @@ function QuickAdd({ angles, products, initialType }: {
         <div className="flex-1" />
         {flash && <span className="text-xs text-primary flex items-center gap-1"><Check className="w-3.5 h-3.5" />{flash}</span>}
         {!many && <Counter type={type} n={text.trim().length} />}
-        <span className="text-[10px] text-muted-foreground hidden sm:inline">
+        <span className="text-[11px] text-muted-foreground hidden sm:inline">
           {multiline ? 'Ctrl + Enter' : 'Enter'} to add
         </span>
         <button type="button" onClick={add} disabled={!canAdd}
@@ -587,7 +587,7 @@ export default function CopyBankPage() {
             <div className="space-y-7">
               {groups.filter((g) => g.entries.length > 0).map((g) => (
                 <section key={g.type}>
-                  <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  <h2 className="text-xs font-medium text-muted-foreground mb-2">
                     {TYPE_PLURAL[g.type]} <span className="font-normal">· {g.entries.length}</span>
                   </h2>
                   <div className="space-y-1.5">
@@ -606,7 +606,7 @@ export default function CopyBankPage() {
               groups.length === 1 ? 'grid-cols-1 max-w-xl' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4')}>
               {groups.map((g) => (
                 <section key={g.type} className="min-w-0 flex flex-col">
-                  <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
+                  <h2 className="text-xs font-medium text-muted-foreground mb-2 px-1">
                     {TYPE_PLURAL[g.type]} <span className="font-normal">· {g.entries.length}</span>
                   </h2>
                   <div className="space-y-2 bg-muted/30 rounded-xl p-2 max-h-[70vh] overflow-y-auto [scrollbar-width:thin] flex-1">

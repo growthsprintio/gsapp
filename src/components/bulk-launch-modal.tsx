@@ -180,7 +180,7 @@ export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
               {/* What will actually go out */}
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="px-3 py-2 bg-muted/50 border-b border-border">
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <p className="text-xs font-medium text-muted-foreground">
                     {ready.length} ready{blocked.length > 0 && ` · ${blocked.length} skipped`}
                   </p>
                 </div>
@@ -195,7 +195,7 @@ export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
                     <div key={i.id} className="flex items-center gap-2 px-3 py-2 bg-muted/30">
                       <AlertCircle className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                       <p className="text-xs truncate text-muted-foreground">{i.concept || i.adName || 'Untitled'}</p>
-                      <span className="text-[10px] text-muted-foreground ml-auto flex-shrink-0">
+                      <span className="text-[11px] text-muted-foreground ml-auto flex-shrink-0">
                         missing {[
                           !i.creativeLink && 'creative',
                           !i.primaryText && 'primary text',

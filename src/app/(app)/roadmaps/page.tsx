@@ -84,7 +84,7 @@ function RoadmapCard({ roadmap, isAgency }: { roadmap: Roadmap; isAgency?: boole
                     : 'bg-secondary border-border text-muted-foreground'
                 )}>
                 <span className="text-sm font-bold">{count}</span>
-                <span className="text-[9px] leading-tight text-center opacity-70">{label}</span>
+                <span className="text-[11px] leading-tight text-center opacity-70">{label}</span>
               </div>
             );
           })}
@@ -96,7 +96,7 @@ function RoadmapCard({ roadmap, isAgency }: { roadmap: Roadmap; isAgency?: boole
         <div className="flex -space-x-2">
           {TEAM_INITIALS.slice(0, 3).map((init, i) => (
             <div key={i}
-              className="w-6 h-6 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[9px] font-bold text-muted-foreground">
+              className="w-6 h-6 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[11px] font-bold text-muted-foreground">
               {init[0]}
             </div>
           ))}
@@ -151,7 +151,7 @@ export default function RoadmapsPage() {
         <div className="flex items-start justify-between">
           <div>
             <div className="inline-flex items-center bg-orange-50 border border-orange-100 rounded-full px-4 py-1 mb-4">
-              <span className="text-xs font-medium text-primary tracking-wide uppercase text-[11px]">Creative Command Center</span>
+              <span className="text-xs font-medium text-primary">Creative Command Center</span>
             </div>
             <h1 className="text-4xl font-bold mb-3">{currentAccount?.name ?? 'Your Roadmaps'}</h1>
             <p className="text-sm text-muted-foreground max-w-md leading-relaxed">

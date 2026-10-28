@@ -64,7 +64,7 @@ function AccountSwitcher() {
         </div>
         <div className="flex-1 min-w-0 text-left">
           <p className="text-xs font-semibold truncate">{current?.name ?? 'No workspace'}</p>
-          <p className="text-[10px] text-muted-foreground capitalize">{current?.type}</p>
+          <p className="text-[11px] text-muted-foreground capitalize">{current?.type}</p>
         </div>
         <ChevronDown className={cn('w-3.5 h-3.5 text-muted-foreground transition-transform', open && 'rotate-180')} />
       </button>
@@ -74,7 +74,7 @@ function AccountSwitcher() {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute left-3 right-3 top-full mt-1 z-50 bg-popover border border-border rounded-xl shadow-lg overflow-hidden">
             <div className="px-3 py-2 border-b border-border">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Workspaces</p>
+              <p className="text-xs font-medium text-muted-foreground">Workspaces</p>
             </div>
             <div className="py-1 max-h-56 overflow-y-auto">
               {workspaces.length === 0 && (
@@ -90,14 +90,14 @@ function AccountSwitcher() {
                     className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-muted transition-colors text-left"
                   >
                     <div className={cn(
-                      'w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0',
+                      'w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold flex-shrink-0',
                       active ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
                     )}>
                       {wsInitials}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{ws.name}</p>
-                      <p className="text-[10px] text-muted-foreground capitalize">{ws.type}</p>
+                      <p className="text-[11px] text-muted-foreground capitalize">{ws.type}</p>
                     </div>
                     {active && <Check className="w-3 h-3 text-primary flex-shrink-0" />}
                   </button>

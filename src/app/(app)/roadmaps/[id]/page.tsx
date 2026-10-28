@@ -183,12 +183,12 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
           const owner = currentOwner(item);
           return owner.name ? (
             <span className="inline-flex items-center gap-1.5 text-xs" title={`${owner.name} · ${owner.role} — ${owner.action}`}>
-              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[9px] font-bold flex-shrink-0">
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[11px] font-bold flex-shrink-0">
                 {owner.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
               </span>
               <span className="min-w-0 leading-tight">
                 <span className="block text-foreground truncate max-w-28">{owner.name}</span>
-                <span className="block text-[10px] text-muted-foreground">{owner.role}</span>
+                <span className="block text-[11px] text-muted-foreground">{owner.role}</span>
               </span>
             </span>
           ) : (
@@ -246,6 +246,10 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
 }
 
 // ─── page ─────────────────────────────────────────────────────────────────────
+
+// Filter pills: outlined and quiet at rest, tinted when narrowing the list.
+const FILTER = 'h-8 bg-card border border-border text-sm text-foreground rounded-full pl-3.5 hover:bg-muted/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 transition-colors';
+const FILTER_ON = 'border-primary/30 bg-primary/8 text-primary hover:bg-primary/10';
 
 export default function RoadmapDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -336,88 +340,71 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
   return (
     <div>
       {/* ── Top header ── */}
-      <div className="px-8 pt-7 pb-5 border-b border-border bg-background">
-        <Link href="/roadmaps"
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-3 transition-colors w-fit">
-          <ArrowLeft className="w-3 h-3" /> Roadmaps
-        </Link>
+      <div className="px-8 pt-6 pb-5 bg-background">
+        <nav className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+          <Link href="/roadmaps" className="flex items-center gap-1 hover:text-foreground transition-colors">
+            <ArrowLeft className="w-3 h-3" /> Roadmaps
+          </Link>
+          {roadmap.period && (
+            <span className="ml-1.5 text-[11px] font-medium text-primary bg-primary/8 px-2 py-0.5 rounded-full">
+              {roadmap.type === 'client' && roadmap.client
+                ? `Client | ${roadmap.client}`
+                : `DTC | ${roadmap.period}`}
+            </span>
+          )}
+        </nav>
 
-        <div className="flex items-start justify-between">
+        <div className="flex items-end justify-between gap-6">
           <div>
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs text-muted-foreground">{roadmap.name}</span>
-              <span className="text-xs text-muted-foreground">·</span>
-              <span className="text-xs text-muted-foreground">Pipeline</span>
-              {roadmap.period && (
-                <span className="text-xs font-medium bg-primary text-white px-2 py-0.5 rounded-full ml-1">
-                  {roadmap.type === 'client' && roadmap.client
-                    ? `Client | ${roadmap.client}`
-                    : `DTC | ${roadmap.period}`}
-                </span>
-              )}
-            </div>
-            <h1 className="text-2xl font-bold">{roadmap.name}</h1>
+            <h1 className="text-[26px] leading-tight font-semibold">{roadmap.name}</h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-              Every creative in this roadmap, from idea to launched. Change a status from the table below to move one through the pipeline.
+              Every creative in this roadmap, from idea to launched.
             </p>
           </div>
           <button onClick={openNew}
-            className="flex items-center gap-2 bg-primary text-white font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-primary/90 transition-colors flex-shrink-0">
-            <Plus className="w-4 h-4" /> New Creative
+            className="flex items-center gap-1.5 bg-primary text-white font-medium text-sm pl-3.5 pr-4 h-9 rounded-full shadow-sm hover:bg-primary/90 hover:shadow transition-all flex-shrink-0">
+            <Plus className="w-4 h-4" /> New creative
           </button>
         </div>
 
-        {/* ── Filter bar ── */}
-        <div className="flex items-center gap-3 mt-5 p-4 bg-card border border-border rounded-2xl">
-          <div className="flex-1">
-            <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Status</p>
-            <select
+        {/* ── Filters: quiet outlined pills; one turns tinted when it's narrowing the list ── */}
+        <div className="flex items-center gap-2 mt-6 flex-wrap">
+            <select aria-label="Status"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as CreativeStatus | 'all')}
-              className="w-full bg-background border border-border text-foreground text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary/30"
+              className={cn(FILTER, filterStatus !== 'all' && FILTER_ON)}
             >
               <option value="all">All statuses</option>
               {COLUMNS.map((c) => <option key={c.status} value={c.status}>{c.label}</option>)}
             </select>
-          </div>
-          <div className="flex-1">
-            <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Ad Format</p>
-            <select
+            <select aria-label="Ad format"
               value={filterFormat}
               onChange={(e) => setFilterFormat(e.target.value)}
-              className="w-full bg-background border border-border text-foreground text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary/30"
+              className={cn(FILTER, filterFormat !== 'all' && FILTER_ON)}
             >
               <option value="all">All formats</option>
               {FORMAT_OPTIONS.map((f) => <option key={f} value={f} className="capitalize">{f}</option>)}
             </select>
-          </div>
-          <div className="flex-1">
-            <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Product</p>
-            <select
+            <select aria-label="Product"
               value={filterProduct}
               onChange={(e) => setFilterProduct(e.target.value)}
-              className="w-full bg-background border border-border text-foreground text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary/30"
+              className={cn(FILTER, filterProduct !== 'all' && FILTER_ON)}
             >
               <option value="all">All products</option>
               {productOptions.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
-          </div>
-          <div className="flex-1">
-            <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Angle</p>
-            <select
+            <select aria-label="Angle"
               value={filterAngle}
               onChange={(e) => setFilterAngle(e.target.value)}
-              className="w-full bg-background border border-border text-foreground text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary/30"
+              className={cn(FILTER, filterAngle !== 'all' && FILTER_ON)}
             >
               <option value="all">All angles</option>
               {angleOptions.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
-          </div>
         </div>
 
         {/* ── Compact stage summary (replaces the kanban board) ── */}
-        <div className="flex items-center gap-2 mt-4 flex-wrap">
+        <div className="flex items-center gap-1 mt-4 flex-wrap">
           {COLUMNS.map((col) => {
             const count = stageCount(col.status);
             const active = filterStatus === col.status;
@@ -426,12 +413,12 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
                 onClick={() => setFilterStatus(active ? 'all' : col.status)}
                 title={`Filter by ${col.label}`}
                 className={cn(
-                  'flex items-center gap-2 rounded-xl border px-3 py-2 transition-colors',
-                  active ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-primary/30'
+                  'flex items-center gap-2 rounded-full px-3 h-8 transition-colors',
+                  active ? 'bg-primary/10 text-primary' : 'hover:bg-foreground/5'
                 )}>
-                <span className={cn('w-1.5 h-6 rounded-full flex-shrink-0', col.accent)} />
-                <span className="text-lg font-bold leading-none">{count}</span>
-                <span className="text-xs text-muted-foreground">{col.label}</span>
+                <span className={cn('w-2 h-2 rounded-full flex-shrink-0', col.accent)} />
+                <span className="text-sm text-muted-foreground">{col.label}</span>
+                <span className="text-sm font-semibold tabular-nums">{count}</span>
               </button>
             );
           })}
@@ -444,19 +431,12 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
 
       {/* ── Ads by Status table — PRIMARY ── */}
       <div className="px-8 pt-6 pb-2">
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-            <h2 className="text-base font-bold">Ads by Status</h2>
-            <button onClick={openNew}
-              className="flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors">
-              <Plus className="w-3.5 h-3.5" /> New Creative
-            </button>
-          </div>
+        <div className="bg-card border border-border rounded-xl shadow-xs overflow-hidden">
 
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-muted border-b border-border">
+                <tr className="border-b border-border">
                   <th className="pl-4 pr-1 py-3 w-8">
                     <button onClick={toggleSelectAll} title="Select all"
                       className={cn('transition-colors', allVisibleSelected ? 'text-primary' : 'text-muted-foreground/40 hover:text-muted-foreground')}>
@@ -464,7 +444,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
                     </button>
                   </th>
                   {['Creative', 'Status', 'Format', 'Angle', 'Product', 'Owner', 'Asset', 'Launch', ''].map((h) => (
-                    <th key={h} className="px-2 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-2 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -479,7 +459,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
                   <>
                     {activeItems.length > 0 && (
                       <tr className="bg-secondary/60">
-                        <td colSpan={10} className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <td colSpan={10} className="px-4 py-2 text-xs font-medium text-muted-foreground">
                           Active · {activeItems.length}
                         </td>
                       </tr>
@@ -489,7 +469,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
                     ))}
                     {inactiveItems.length > 0 && (
                       <tr className="bg-secondary/60">
-                        <td colSpan={10} className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <td colSpan={10} className="px-4 py-2 text-xs font-medium text-muted-foreground">
                           Inactive · Launched · {inactiveItems.length}
                         </td>
                       </tr>

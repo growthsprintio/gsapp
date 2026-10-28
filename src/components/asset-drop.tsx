@@ -104,7 +104,7 @@ export function CreativeInput({ value, onChange, multiple = false, className }: 
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-medium text-primary">Hosted by GrowthSprint</p>
-                <p className="text-[10px] text-muted-foreground font-mono truncate">{url}</p>
+                <p className="text-[11px] text-muted-foreground font-mono truncate">{url}</p>
               </div>
               <button type="button" onClick={() => copy(url)} title="Copy link"
                 className="p-1.5 rounded-md hover:bg-secondary transition-colors flex-shrink-0">
@@ -157,7 +157,7 @@ export function CreativeInput({ value, onChange, multiple = false, className }: 
                 <>
                   <UploadCloud className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs font-medium">Drop {multiple ? 'creatives' : 'a creative'} here, or click to browse</span>
-                  <span className="text-[10px] text-muted-foreground">JPG, PNG, WebP, GIF, MP4 or MOV · up to 30MB</span>
+                  <span className="text-[11px] text-muted-foreground">JPG, PNG, WebP, GIF, MP4 or MOV · up to 30MB</span>
                 </>
               )}
             </button>

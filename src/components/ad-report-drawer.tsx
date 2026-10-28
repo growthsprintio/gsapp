@@ -114,12 +114,12 @@ export function AdReportDrawer({ open, onClose, item }: Props) {
               <p className="text-xs font-mono">{item.adName}</p>
             )}
             <div className="flex items-center flex-wrap gap-2">
-              <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', cfg.bg, cfg.color)}>{cfg.label}</span>
+              <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-full', cfg.bg, cfg.color)}>{cfg.label}</span>
               {item.adFormat && (
-                <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5 capitalize">{item.adFormat}</span>
+                <span className="text-[11px] text-muted-foreground border border-border rounded-full px-2 py-0.5 capitalize">{item.adFormat}</span>
               )}
               {item.launchedAt && (
-                <span className="text-[10px] text-muted-foreground">Launched {format(new Date(item.launchedAt), 'MMM d, yyyy')}</span>
+                <span className="text-[11px] text-muted-foreground">Launched {format(new Date(item.launchedAt), 'MMM d, yyyy')}</span>
               )}
             </div>
             {item.metaAdId && (
@@ -132,7 +132,7 @@ export function AdReportDrawer({ open, onClose, item }: Props) {
           {/* Source badge */}
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">Performance</h3>
-            <span className={cn('text-[10px] font-medium rounded-full px-2 py-0.5 border',
+            <span className={cn('text-[11px] font-medium rounded-full px-2 py-0.5 border',
               source === 'live'
                 ? 'bg-primary/5 border-primary/20 text-primary'
                 : 'bg-secondary border-border text-muted-foreground')}>

@@ -118,7 +118,7 @@ function NamingConventionBuilder() {
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <Wand2 className="w-4 h-4 text-primary" /> Live Preview
           </h3>
-          <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">Sample data</span>
+          <span className="text-[11px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">Sample data</span>
         </div>
         <div className="bg-background border border-border rounded-lg px-4 py-3">
           <p className="font-mono text-sm font-semibold tracking-wide">{preview || '—'}</p>
@@ -173,7 +173,7 @@ function NamingConventionBuilder() {
                   style === opt.v ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30',
                 )}>
                 <p className={cn('text-xs font-medium', style === opt.v && 'text-primary')}>{opt.title}</p>
-                <p className="text-[10px] text-muted-foreground font-mono truncate mt-0.5">{opt.eg}</p>
+                <p className="text-[11px] text-muted-foreground font-mono truncate mt-0.5">{opt.eg}</p>
               </button>
             ))}
           </div>
@@ -218,7 +218,7 @@ function NamingConventionBuilder() {
 
         <div className="space-y-3">
           {variables.filter((v) => v.source === 'field' || v.key === 'b' || v.key === '#').length > 0 && (
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Field Variables</p>
+            <p className="text-xs font-medium text-muted-foreground">Field Variables</p>
           )}
           {variables.filter((v) => v.source === 'field' || v.key === 'b' || v.key === '#').map((v) => {
             const isExpanded = editingVar === v.key;
@@ -235,7 +235,7 @@ function NamingConventionBuilder() {
                     {v.source === 'field' ? `→ ${v.field}` : 'custom'}
                   </span>
                   {(v.values?.length ?? 0) > 0 && (
-                    <span className="text-[10px] text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
+                    <span className="text-[11px] text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
                       {v.values?.length} mapping{(v.values?.length ?? 0) !== 1 ? 's' : ''}
                     </span>
                   )}
@@ -368,7 +368,7 @@ function NamingConventionBuilder() {
           <div className="pt-3 mt-3 border-t border-border">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Custom Identifiers</p>
+                <p className="text-xs font-medium text-muted-foreground">Custom Identifiers</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">Define your own variables with selectable options — shown as dropdowns in the brief drawer.</p>
               </div>
               <button type="button" onClick={addVariable}
@@ -395,7 +395,7 @@ function NamingConventionBuilder() {
                         </span>
                         <span className="text-sm font-medium flex-1">{v.label || 'Untitled'}</span>
                         {(v.values?.length ?? 0) > 0 && (
-                          <span className="text-[10px] text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
+                          <span className="text-[11px] text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
                             {v.values?.length} option{(v.values?.length ?? 0) !== 1 ? 's' : ''}
                           </span>
                         )}

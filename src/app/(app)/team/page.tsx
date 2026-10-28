@@ -299,7 +299,7 @@ export default function TeamPage() {
                   </div>
 
                   <label className="flex flex-col gap-0.5">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">What they do</span>
+                    <span className="text-xs font-medium text-muted-foreground">What they do</span>
                     <select value={member.jobRole ?? ''} disabled={!profileColumns}
                       onChange={(e) => updateMember(member.userId, { jobRole: e.target.value })}
                       className={cn('text-xs border rounded-md px-2 py-1 bg-background w-40',
@@ -310,7 +310,7 @@ export default function TeamPage() {
                   </label>
 
                   <label className="flex flex-col gap-0.5">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Access</span>
+                    <span className="text-xs font-medium text-muted-foreground">Access</span>
                     <select value={member.role} onChange={(e) => updateMember(member.userId, { role: e.target.value })}
                       className="text-xs border border-border rounded-md px-2 py-1 bg-background w-28">
                       {(Object.keys(ROLE_CONFIG) as Role[]).map((r) => (

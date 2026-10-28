@@ -145,7 +145,7 @@ function WorkspacesContent() {
                     <Icon className={cn('w-4 h-4', form.type === type && 'text-primary')} />
                     <div>
                       <p className="text-xs font-semibold">{cfg.label}</p>
-                      <p className="text-[10px] opacity-70 mt-0.5">{cfg.desc}</p>
+                      <p className="text-[11px] opacity-70 mt-0.5">{cfg.desc}</p>
                     </div>
                   </button>
                 );

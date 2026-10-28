@@ -185,7 +185,7 @@ export default function DashboardPage() {
                       <ArrowRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                     </div>
                     <div className="flex items-center gap-1.5 mt-1">
-                      <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded', STATUS_CONFIG[item.status].bg, STATUS_CONFIG[item.status].color)}>
+                      <span className={cn('text-[11px] font-medium px-1.5 py-0.5 rounded', STATUS_CONFIG[item.status].bg, STATUS_CONFIG[item.status].color)}>
                         {STATUS_CONFIG[item.status].label}
                       </span>
                       <span className="text-[11px] text-muted-foreground">Due {format(new Date(item.dueDate!), 'MMM d')}</span>
