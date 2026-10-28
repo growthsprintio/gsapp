@@ -11,6 +11,10 @@ import { X, Wand2, ExternalLink, ChevronDown, Search, Check, AlertCircle, Image 
 import { cn } from '@/lib/utils';
 import { useRef } from 'react';
 import { rankForBrief } from '@/lib/copy-bank';
+import {
+  SLOTS, SLOT_LABEL, SLOT_ROLES, STAGE_SLOT, STAGE_ACTION, ownersOf, prefillOwners, memberName, jobRoleLabel,
+  type Owners, type TeamMember, type JobRole,
+} from '@/lib/ownership';
 import type { CopyBankEntry } from '@/lib/types';
 import { CreativeInput } from '@/components/asset-drop';
 
@@ -22,10 +26,10 @@ const GHOST = 'w-full bg-transparent border border-transparent rounded-md px-2 p
 /** A label / value row in the Properties panel. */
 function Prop({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[68px_minmax(0,1fr)] items-start gap-1">
+    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-start gap-1">
       {/* Wraps rather than truncating: these include workspace-named
           variables, and "Landing…" says nothing. */}
-      <span className="text-xs text-muted-foreground pt-2 px-2 leading-tight break-words">{label}</span>
+      <span className="text-xs text-muted-foreground pt-2 px-2 leading-tight break-normal">{label}</span>
       <div className="min-w-0">{children}</div>
     </div>
   );
@@ -441,19 +445,30 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const [dupState, setDupState] = useState<'idle' | 'working'>('idle');
   // Suggestions for the Owner field — typing a name still works if the team
   // call fails or Supabase isn't configured.
-  const [teamOwners, setTeamOwners] = useState<string[]>([]);
+  // The team, with what each person does — drives the owner suggestions and
+  // prefill. Typing a name still works if this call fails.
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [owners, setOwners] = useState<Owners>({});
   useEffect(() => {
     if (!open) return;
     fetch('/api/team')
       .then((r) => r.json())
       .then((d) => {
-        const names = (d?.members ?? [])
-          .map((m: { name?: string; email?: string }) => m.name || m.email || '')
-          .filter(Boolean);
-        setTeamOwners(names);
+        setTeam((d?.members ?? []).map((m: { displayName?: string; email?: string; jobRole?: JobRole }) => ({
+          name: memberName(m),
+          jobRole: m.jobRole ?? null,
+        })));
       })
       .catch(() => {});
   }, [open]);
+
+  // A new brief starts with the obvious people in place: if exactly one
+  // person does a job, they fill that slot. Never overwrites a choice.
+  useEffect(() => {
+    if (!open || editItem || team.length === 0) return;
+    const pre = prefillOwners(team);
+    setOwners((o) => ({ ...pre, ...Object.fromEntries(Object.entries(o).filter(([, v]) => v)) }));
+  }, [open, editItem, team]);
 
   const [campaignCount, setCampaignCount] = useState<number | null>(null);
   const [adAccountId, setAdAccountId] = useState<string | null>(null);
@@ -567,6 +582,9 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     // Hydrate from the item — without this, values carried over from whichever
     // brief was opened before.
     setCustomValues(editItem?.variables ?? {});
+    // Same reasoning as variables: hydrate per brief so owners can't carry
+    // over from the last one opened. Old briefs' assignee lands as the maker.
+    setOwners(editItem ? ownersOf(editItem) : {});
     setTab('brief');
     // Only an explicitly hand-written name stops the rebuild. Treating any
     // existing name as custom meant editing a saved brief never updated it.
@@ -710,11 +728,18 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     e.preventDefault();
     // customValues was component state only — variable values were lost on
     // close, so reopening a brief regenerated a different ad name.
+    const cleanOwners = Object.fromEntries(
+      Object.entries(owners).map(([k, v]) => [k, v?.trim() || undefined]).filter(([, v]) => v),
+    ) as Owners;
     const payload = {
       ...form,
       variables: customValues,
       adNameCustom: nameEdited,
       nameIndex,
+      owners: cleanOwners,
+      // Kept in step with the maker so anything still reading the old single
+      // field sees the right person.
+      assignee: cleanOwners.maker ?? '',
     } as Partial<RoadmapItem>;
     if (editItem) {
       updateItem(roadmapId, editItem.id, payload);
@@ -940,13 +965,32 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
                   <div className="border-t border-border !my-3" />
 
-                  <Prop label="Owner">
-                    <input value={form.assignee} onChange={(e) => set('assignee', e.target.value)}
-                      list="brief-owners" placeholder="Unassigned" className={GHOST} />
-                    <datalist id="brief-owners">
-                      {teamOwners.map((o) => <option key={o} value={o} />)}
-                    </datalist>
-                  </Prop>
+                  {/* One person per role; the stage decides whose turn it is.
+                      The slot that currently holds the ball is marked. */}
+                  {SLOTS.map((slot) => {
+                    const turn = !!editItem && STAGE_SLOT[editItem.status] === slot;
+                    // People who do this job first, then everyone else.
+                    const fits = team.filter((m) => m.jobRole && SLOT_ROLES[slot].includes(m.jobRole));
+                    const rest = team.filter((m) => !fits.includes(m));
+                    return (
+                      <Prop key={slot} label={SLOT_LABEL[slot]}>
+                        <div className="flex items-center gap-1">
+                          <input value={owners[slot] ?? ''}
+                            onChange={(e) => setOwners((o) => ({ ...o, [slot]: e.target.value }))}
+                            list={`owners-${slot}`} placeholder="Unassigned" className={GHOST} />
+                          {turn && (
+                            <span title={`Their turn — ${STAGE_ACTION[editItem!.status]}`}
+                              className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 mr-1" />
+                          )}
+                        </div>
+                        <datalist id={`owners-${slot}`}>
+                          {[...fits, ...rest].map((m) => (
+                            <option key={m.name} value={m.name}>{jobRoleLabel(m.jobRole) ?? ''}</option>
+                          ))}
+                        </datalist>
+                      </Prop>
+                    );
+                  })}
 
                   <Prop label="Due">
                     <input type="date" value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)}

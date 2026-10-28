@@ -10,6 +10,7 @@ import { Plus, ArrowLeft, Zap, ExternalLink, ChevronDown, Pencil, Trash2, Image 
 import Link from 'next/link';
 import { BriefDrawer } from '@/components/brief-drawer';
 import { BulkLaunchModal } from '@/components/bulk-launch-modal';
+import { currentOwner } from '@/lib/ownership';
 
 // ─── column config ───────────────────────────────────────────────────────────
 
@@ -174,17 +175,28 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
       <td className="px-4 py-3 text-sm capitalize text-muted-foreground">{item.adFormat || '—'}</td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{item.angle || '—'}</td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{item.product || '—'}</td>
+      {/* Whose turn it is — the person in the slot this stage belongs to.
+          A gap reads as "Needs …", which is the actionable version of
+          "Unassigned": it says who to find. */}
       <td className="px-4 py-3">
-        {item.assignee ? (
-          <span className="inline-flex items-center gap-1.5 text-xs">
-            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[9px] font-bold">
-              {item.assignee.slice(0, 2).toUpperCase()}
+        {(() => {
+          const owner = currentOwner(item);
+          return owner.name ? (
+            <span className="inline-flex items-center gap-1.5 text-xs" title={`${owner.name} · ${owner.role} — ${owner.action}`}>
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[9px] font-bold flex-shrink-0">
+                {owner.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+              </span>
+              <span className="min-w-0 leading-tight">
+                <span className="block text-foreground truncate max-w-28">{owner.name}</span>
+                <span className="block text-[10px] text-muted-foreground">{owner.role}</span>
+              </span>
             </span>
-            <span className="text-muted-foreground truncate max-w-24">{item.assignee}</span>
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">Unassigned</span>
-        )}
+          ) : (
+            <span className="text-xs text-amber-700/80" title={`Nobody is set as ${owner.role.toLowerCase()} — it's their turn`}>
+              Needs {owner.role.toLowerCase()}
+            </span>
+          );
+        })()}
       </td>
       <td className="px-4 py-3" onClick={stop}>
         {item.creativeLink ? (

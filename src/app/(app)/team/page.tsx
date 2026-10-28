@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Users, Mail, Shield, Crown, Eye, Trash2, AlertCircle, Plus, Copy, Check, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { JOB_ROLES, memberName, type JobRole } from '@/lib/ownership';
 
 type Role = 'admin' | 'member' | 'viewer';
 
@@ -10,6 +11,8 @@ interface Member {
   userId: string;
   email: string;
   role: Role;
+  jobRole?: JobRole | null;
+  displayName?: string | null;
   joinedAt: string;
 }
 
@@ -36,6 +39,7 @@ export default function TeamPage() {
   const [invites, setInvites] = useState<{ id: string; email: string; role: Role; link: string; created_at: string }[]>([]);
   const [inviteLink, setInviteLink] = useState('');
   const [copied, setCopied] = useState('');
+  const [profileColumns, setProfileColumns] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -45,6 +49,7 @@ export default function TeamPage() {
       const inv = await iRes.json().catch(() => ({}));
       setConfigured(d.configured !== false);
       setMembers(d.members || []);
+      setProfileColumns(d.profileColumns !== false);
       setInvites(inv.invites || []);
     } catch {
       setError('Could not load team members.');
@@ -93,13 +98,24 @@ export default function TeamPage() {
     setTimeout(() => setCopied(''), 2000);
   };
 
-  const changeRole = async (userId: string, role: Role) => {
-    await fetch('/api/team', {
+  const updateMember = async (userId: string, updates: { role?: string; jobRole?: string; displayName?: string }) => {
+    setError('');
+    setMembers((ms) => ms.map((m) => m.userId !== userId ? m : {
+      ...m,
+      ...(updates.role !== undefined && { role: updates.role as Role }),
+      ...(updates.jobRole !== undefined && { jobRole: (updates.jobRole || null) as JobRole | null }),
+      ...(updates.displayName !== undefined && { displayName: updates.displayName || null }),
+    }));
+    const r = await fetch('/api/team', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, role }),
+      body: JSON.stringify({ userId, ...updates }),
     });
-    await load();
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      setError(d.error || 'Could not update member.');
+      await load();
+    }
   };
 
   const removeMember = async (userId: string) => {
@@ -118,7 +134,7 @@ export default function TeamPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-semibold">Team</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Manage access and roles for this workspace.</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Who&rsquo;s on the team, what they do, and what they can access. Job roles decide who briefs are routed to.</p>
         </div>
         <button onClick={() => setShowInvite(!showInvite)}
           className="flex items-center gap-2 bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
@@ -250,33 +266,61 @@ export default function TeamPage() {
           </div>
         ) : (
           <div className="divide-y divide-border">
+            {!profileColumns && (
+              <p className="px-5 py-3 text-xs text-amber-700 bg-amber-50/60">
+                Job roles need a one-time database update (supabase/schema-team-roles.sql) before they can be saved.
+              </p>
+            )}
             {members.map((member) => {
-              const role = ROLE_CONFIG[member.role] ?? ROLE_CONFIG.member;
-              const RoleIcon = role.icon;
-              const initials = member.email.slice(0, 2).toUpperCase();
+              const name = memberName(member);
+              const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
               return (
-                <div key={member.userId} className="flex items-center gap-4 px-5 py-4 group">
+                <div key={member.userId} className="flex items-center gap-4 px-5 py-3.5 group">
                   <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary flex-shrink-0">
                     {initials}
                   </div>
+
+                  {/* Name is what briefs and the roadmap show, so it's editable
+                      right here — defaulting to the email's first part. */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{member.email}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Joined {new Date(member.joinedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </p>
+                    <input
+                      defaultValue={member.displayName ?? ''}
+                      key={member.displayName ?? ''}
+                      placeholder={name}
+                      disabled={!profileColumns}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v !== (member.displayName ?? '')) updateMember(member.userId, { displayName: v });
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                      className="w-full max-w-xs text-sm font-medium bg-transparent border border-transparent hover:border-border focus:border-primary rounded-md px-1.5 py-0.5 -ml-1.5 focus:outline-none transition-colors placeholder:text-foreground disabled:hover:border-transparent"
+                    />
+                    <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                   </div>
-                  <span className={cn('flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full', role.bg, role.color)}>
-                    <RoleIcon className="w-3 h-3" />
-                    {role.label}
-                  </span>
-                  <select value={member.role} onChange={(e) => changeRole(member.userId, e.target.value as Role)}
-                    className="text-xs border border-border rounded px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary">
-                    {(Object.keys(ROLE_CONFIG) as Role[]).map((r) => (
-                      <option key={r} value={r}>{ROLE_CONFIG[r].label}</option>
-                    ))}
-                  </select>
-                  <button onClick={() => removeMember(member.userId)} title="Remove from workspace"
-                    className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
+
+                  <label className="flex flex-col gap-0.5">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">What they do</span>
+                    <select value={member.jobRole ?? ''} disabled={!profileColumns}
+                      onChange={(e) => updateMember(member.userId, { jobRole: e.target.value })}
+                      className={cn('text-xs border rounded-md px-2 py-1 bg-background w-40',
+                        member.jobRole ? 'border-border' : 'border-dashed border-border text-muted-foreground')}>
+                      <option value="">Not set</option>
+                      {JOB_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                  </label>
+
+                  <label className="flex flex-col gap-0.5">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Access</span>
+                    <select value={member.role} onChange={(e) => updateMember(member.userId, { role: e.target.value })}
+                      className="text-xs border border-border rounded-md px-2 py-1 bg-background w-28">
+                      {(Object.keys(ROLE_CONFIG) as Role[]).map((r) => (
+                        <option key={r} value={r}>{ROLE_CONFIG[r].label}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <button onClick={() => removeMember(member.userId)} title="Remove from workspace" aria-label="Remove from workspace"
+                    className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 self-end">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>

@@ -55,6 +55,12 @@ export interface RoadmapItem {
   adNameCustom?: boolean;
   /** The {#} value, kept so a name doesn't change every time it's reopened. */
   nameIndex?: number;
+  /**
+   * One person per role. The stage decides whose turn it is — see
+   * lib/ownership. Replaces the single `assignee`, which is read as the
+   * maker for briefs saved before this existed.
+   */
+  owners?: { strategist?: string; maker?: string; mediaBuyer?: string };
   dueDate?: string;
   adLength?: string;
   assignee?: string;
