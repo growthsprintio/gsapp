@@ -159,7 +159,7 @@ export function NamingSettings() {
                 <button key={s.value} type="button" onClick={() => setSeparator(s.value)} title={s.label.split(/\s{2,}/)[1]}
                   className={cn('h-7 min-w-8 px-2 rounded-full text-sm font-mono transition-colors',
                     separator === s.value ? 'bg-card shadow-xs text-foreground' : 'text-muted-foreground hover:text-foreground')}>
-                  {s.label.split(/\s{2,}/)[0]}
+                  a{s.value}b
                 </button>
               ))}
             </div>

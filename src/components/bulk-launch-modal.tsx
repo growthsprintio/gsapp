@@ -157,7 +157,7 @@ export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium block mb-1.5">Ad Set</label>
+                  <label className="text-xs font-medium block mb-1.5">Ad set</label>
                   <select value={adSetId} disabled={!campaignId}
                     onChange={(e) => setAdSetId(e.target.value)}
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50">
@@ -171,7 +171,7 @@ export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
 
               <div>
                 <label className="text-xs font-medium block mb-1.5">
-                  Call to Action <span className="text-muted-foreground font-normal">(applies to all)</span>
+                  Call to action <span className="text-muted-foreground font-normal">(applies to all)</span>
                 </label>
                 <select value={cta} onChange={(e) => setCta(e.target.value)}
                   className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary">

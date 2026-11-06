@@ -178,9 +178,9 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle, flash, onDuplic
           )}
         </div>
       </td>
-      <td className="px-4 py-3 text-sm capitalize text-muted-foreground">{item.adFormat || '—'}</td>
+      <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.adFormat === 'ugc' ? 'UGC' : <span className="capitalize">{item.adFormat || '—'}</span>}</td>
       <td className="px-4 py-3 text-sm text-muted-foreground">{item.angle || '—'}</td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">{item.product || '—'}</td>
+      <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.product || '—'}</td>
       {/* Whose turn it is — the person in the slot this stage belongs to.
           A gap reads as "Needs …", which is the actionable version of
           "Unassigned": it says who to find. */}
@@ -194,11 +194,11 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle, flash, onDuplic
               </span>
               <span className="min-w-0 leading-tight">
                 <span className="block text-foreground truncate max-w-28">{owner.name}</span>
-                <span className="block text-[11px] text-muted-foreground">{owner.role}</span>
+                <span className="block text-[11px] text-muted-foreground whitespace-nowrap">{owner.role}</span>
               </span>
             </span>
           ) : (
-            <span className="text-xs text-amber-700/80" title={`Nobody is set as ${owner.role.toLowerCase()} — it's their turn`}>
+            <span className="inline-block text-xs text-muted-foreground border border-dashed border-border rounded-full px-2 py-0.5 whitespace-nowrap" title={`Nobody is set as ${owner.role.toLowerCase()} — it's their turn`}>
               Needs {owner.role.toLowerCase()}
             </span>
           );

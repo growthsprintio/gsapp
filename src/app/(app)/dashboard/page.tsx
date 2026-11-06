@@ -18,6 +18,16 @@ const FUNNEL: { status: CreativeStatus; label: string }[] = [
 
 const DAY = 86400000;
 
+/** An empty section that says what to do next, not just that it's empty. */
+function EmptyNote({ text, link }: { text: string; link: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border px-3 py-4 text-center">
+      <p className="text-xs text-muted-foreground">{text}</p>
+      <Link href="/roadmaps" className="text-xs font-medium text-primary hover:underline mt-1 inline-block">{link}</Link>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const allRoadmaps = useAppStore((s) => s.roadmaps);
   const currentAccountId = useAppStore((s) => s.currentAccountId);
@@ -39,7 +49,9 @@ export default function DashboardPage() {
   const launchedMTD = allItems.filter((i) => i.status === 'launched' && i.launchedAt && new Date(i.launchedAt).getTime() >= startOfMonth.getTime()).length;
 
   const funnelCounts = FUNNEL.map((f) => ({ ...f, count: allItems.filter((i) => i.status === f.status).length }));
-  const funnelMax = Math.max(1, ...funnelCounts.map((f) => f.count));
+  // Each bar is its share of the pipeline, so one creative in every stage doesn't
+  // draw five full bars.
+  const funnelTotal = Math.max(1, funnelCounts.reduce((n, f) => n + f.count, 0));
   const launched30 = allItems.filter((i) => i.status === 'launched' && i.launchedAt && now - new Date(i.launchedAt).getTime() <= 30 * DAY).length;
 
   const recentRoadmaps = [...activeRoadmaps]
@@ -85,7 +97,7 @@ export default function DashboardPage() {
         {STATS.map(({ label, value, sub }) => (
           <div key={label} className="bg-card border border-border rounded-xl p-5">
             <p className="text-xs text-muted-foreground mb-2">{label}</p>
-            <p className="text-4xl font-bold text-foreground">{value}</p>
+            <p className="text-4xl font-semibold tabular-nums tracking-tight text-foreground">{value}</p>
             <p className="text-xs text-muted-foreground mt-2">{sub}</p>
           </div>
         ))}
@@ -97,7 +109,7 @@ export default function DashboardPage() {
         {/* Pipeline */}
         <div className="xl:col-span-5">
           {/* Pipeline funnel */}
-          <div className="bg-card border border-border rounded-xl p-5">
+          <div className="bg-card border border-border rounded-xl p-5 h-full">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold">Creative pipeline, idea to launch</h2>
               <span className="text-xs text-muted-foreground">{launched30} launched · last 30 days</span>
@@ -110,10 +122,10 @@ export default function DashboardPage() {
                     <div
                       className={cn('h-full rounded-md flex items-center justify-end px-2 transition-all',
                         f.status === 'launched' ? 'bg-primary' : 'bg-primary/30')}
-                      style={{ width: `${Math.max((f.count / funnelMax) * 100, f.count > 0 ? 8 : 0)}%` }}
+                      style={{ width: `${Math.max((f.count / funnelTotal) * 100, f.count > 0 ? 8 : 0)}%` }}
                     >
                       {f.count > 0 && (
-                        <span className={cn('text-xs font-bold', f.status === 'launched' ? 'text-white' : 'text-foreground')}>{f.count}</span>
+                        <span className={cn('text-xs font-semibold tabular-nums', f.status === 'launched' ? 'text-white' : 'text-foreground')}>{f.count}</span>
                       )}
                     </div>
                   </div>
@@ -125,21 +137,21 @@ export default function DashboardPage() {
 
         {/* Recent roadmaps (3 most recent) */}
         <div className="xl:col-span-4">
-          <div>
+          <div className="bg-card border border-border rounded-xl p-5 h-full">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold">Recent roadmaps</h2>
               <Link href="/roadmaps" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                 View all <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-0.5">
               {recentRoadmaps.map((r) => {
                 const items = r.items;
                 const launched = items.filter((i) => i.status === 'launched').length;
                 const rtl = items.filter((i) => i.status === 'ready_to_launch').length;
                 return (
                   <Link key={r.id} href={`/roadmaps/${r.id}`}
-                    className="flex items-center gap-4 bg-card border border-border rounded-lg px-4 py-3.5 hover:border-primary/40 transition-colors group">
+                    className="flex items-center gap-4 -mx-2 rounded-lg px-2 py-2.5 hover:bg-muted/60 transition-colors group">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{r.name}</p>
                       <p className="text-xs text-muted-foreground mt-0.5 first-letter:uppercase">{r.type} · {items.length} creative{items.length !== 1 ? 's' : ''}</p>
@@ -169,17 +181,17 @@ export default function DashboardPage() {
         {/* Right: Due next + Recently launched */}
         <div className="xl:col-span-3 space-y-6">
           {/* Due Next */}
-          <div>
+          <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-sm font-semibold mb-4 flex items-center gap-1.5">
               <CalendarClock className="w-4 h-4 text-muted-foreground" /> Due next
             </h2>
             {dueNext.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nothing scheduled.</p>
+              <EmptyNote text="Nothing due yet" link="Add a due date to a brief" />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-0.5">
                 {dueNext.map((item) => (
                   <Link key={item.id} href={`/roadmaps/${item.roadmapId}`}
-                    className="block bg-card border border-border rounded-lg px-3 py-2.5 hover:border-primary/40 transition-colors group">
+                    className="block -mx-2 rounded-lg px-2 py-2 hover:bg-muted/60 transition-colors group">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-medium truncate">{item.concept || item.adName || 'Untitled'}</p>
                       <ArrowRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
@@ -197,15 +209,15 @@ export default function DashboardPage() {
           </div>
 
           {/* Recently Launched — thumbnails */}
-          <div>
+          <div className="bg-card border border-border rounded-xl p-5">
             <h2 className="text-sm font-semibold mb-4">Recently launched</h2>
             {recentlyLaunched.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No launches yet.</p>
+              <EmptyNote text="No launches yet" link="See what’s approved" />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-0.5">
                 {recentlyLaunched.map((item) => (
                   <Link key={item.id} href={`/roadmaps/${item.roadmapId}`}
-                    className="flex items-center gap-3 bg-card border border-border rounded-lg p-2 hover:border-primary/40 transition-colors group">
+                    className="flex items-center gap-3 -mx-2 rounded-lg p-2 hover:bg-muted/60 transition-colors group">
                     <div className="w-11 h-11 rounded-md bg-secondary border border-border flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {item.creativeLink ? (
                         <img src={item.creativeLink} alt="" className="w-full h-full object-cover" />

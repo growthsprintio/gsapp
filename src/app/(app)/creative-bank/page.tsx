@@ -33,41 +33,43 @@ function useCopyLink(url: string) {
   return { copied, copy };
 }
 
+const formatLabel = (f: AdFormat) => (f === 'ugc' ? 'UGC' : f.charAt(0).toUpperCase() + f.slice(1));
+
+/** Tags and date, in place of the raw file URL. */
+function detailsOf(entry: CreativeBankEntry) {
+  const added = new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return [...entry.tags, `Added ${added}`].join(' · ');
+}
+
 function CreativeTile({ entry }: { entry: CreativeBankEntry }) {
   const deleteCreativeEntry = useAppStore((s) => s.deleteCreativeEntry);
   const { copied, copy } = useCopyLink(entry.url);
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden group hover:border-primary/30 transition-colors">
-      <Thumb url={entry.url} className="w-full h-40" />
-      <div className="p-3.5">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-medium leading-snug">{entry.title}</p>
-          <span className="text-[11px] font-medium border border-border rounded-full px-2 py-0.5 capitalize flex-shrink-0 text-muted-foreground">
-            {entry.format}
-          </span>
-        </div>
-        {entry.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {entry.tags.map((tag) => (
-              <span key={tag} className="text-[11px] text-muted-foreground border border-border rounded-full px-2 py-0.5">{tag}</span>
-            ))}
-          </div>
-        )}
-        <div className="flex items-center gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <a href={entry.url} target="_blank" rel="noreferrer" title="Open link"
+    <div className="bg-card border border-border rounded-xl overflow-hidden group hover:shadow-md transition-shadow">
+      <div className="relative">
+        <Thumb url={entry.url} className="w-full aspect-[4/5]" />
+        <span className="absolute top-2 right-2 text-[11px] font-medium bg-card/90 rounded-full px-2 py-0.5">
+          {formatLabel(entry.format)}
+        </span>
+        <div className="absolute bottom-2 right-2 flex items-center gap-0.5 bg-card/95 rounded-lg p-0.5 shadow-sm opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
+          <a href={entry.url} target="_blank" rel="noreferrer" title="Open" aria-label="Open"
             className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
-          <button onClick={copy} title="Copy link"
+          <button onClick={copy} title="Copy link" aria-label="Copy link"
             className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
             {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
-          <button onClick={() => deleteCreativeEntry(entry.id)} title="Remove"
-            className="p-1.5 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors ml-auto">
+          <button onClick={() => deleteCreativeEntry(entry.id)} title="Remove" aria-label="Remove"
+            className="p-1.5 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
+      </div>
+      <div className="px-3 py-2.5">
+        <p className="text-sm font-medium truncate">{entry.title}</p>
+        <p className="text-xs text-muted-foreground truncate mt-0.5">{detailsOf(entry)}</p>
       </div>
     </div>
   );
@@ -82,10 +84,10 @@ function CreativeRow({ entry }: { entry: CreativeBankEntry }) {
       <Thumb url={entry.url} className="w-12 h-12 rounded-md border border-border flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{entry.title}</p>
-        <p className="text-[11px] text-muted-foreground truncate">{entry.url}</p>
+        <p className="text-xs text-muted-foreground truncate">{detailsOf(entry)}</p>
       </div>
-      <span className="text-[11px] font-medium border border-border rounded-full px-2 py-0.5 capitalize flex-shrink-0 text-muted-foreground">
-        {entry.format}
+      <span className="text-[11px] font-medium border border-border rounded-full px-2 py-0.5 flex-shrink-0 text-muted-foreground">
+        {formatLabel(entry.format)}
       </span>
       <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <a href={entry.url} target="_blank" rel="noreferrer" title="Open link"
@@ -110,7 +112,7 @@ function LibraryTab() {
   const addCreativeEntry = useAppStore((s) => s.addCreativeEntry);
   const [showNew, setShowNew] = useState(false);
   const [filter, setFilter] = useState<AdFormat | 'all'>('all');
-  const [view, setView] = useState<'tiles' | 'rows'>('rows');
+  const [view, setView] = useState<'tiles' | 'rows'>('tiles');
   const [form, setForm] = useState({ title: '', url: '', format: 'static' as AdFormat, tags: '' });
 
   const filtered = filter === 'all' ? creativeBank : creativeBank.filter((e) => e.format === filter);
@@ -223,7 +225,7 @@ function LibraryTab() {
           <button onClick={() => setShowNew(true)} className="text-sm text-primary hover:underline">Add creative</button>
         </div>
       ) : view === 'tiles' ? (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((e) => <CreativeTile key={e.id} entry={e} />)}
         </div>
       ) : (
@@ -253,7 +255,7 @@ function Creatives() {
   const choose = (t: Tab) => router.replace(t === 'briefs' ? '/creative-bank?tab=briefs' : '/creative-bank', { scroll: false });
 
   return (
-    <div className="px-8 pt-7 pb-10 max-w-5xl">
+    <div className="px-8 pt-7 pb-10 max-w-6xl">
       <h1 className="text-[26px] leading-tight font-semibold">Creatives</h1>
       <p className="text-sm text-muted-foreground mt-1">Your creative library, and the briefs you send to creators and designers.</p>
 

@@ -2,8 +2,9 @@
 
 import { useAppStore } from '@/lib/store';
 import { useState } from 'react';
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { ownersOf } from '@/lib/ownership';
 import { cn } from '@/lib/utils';
 import { NewRoadmapDialog } from '@/components/new-roadmap-dialog';
 import type { Roadmap } from '@/lib/types';
@@ -18,7 +19,6 @@ const MINI_STAGES = [
   { key: 'launched', label: 'Live' },
 ] as const;
 
-const TEAM_INITIALS = ['JM', 'SP', 'CL', 'AR'];
 
 function lastUpdated(roadmap: Roadmap) {
   if (roadmap.items.length === 0) return null;
@@ -37,37 +37,37 @@ function RoadmapCard({ roadmap, isAgency }: { roadmap: Roadmap; isAgency?: boole
     ? `Client · ${roadmap.client}`
     : roadmap.period || roadmap.type.charAt(0).toUpperCase() + roadmap.type.slice(1);
 
+  // Whoever actually owns work in this roadmap.
+  const people = [...new Set(items.flatMap((i) => Object.values(ownersOf(i)).filter(Boolean) as string[]))];
+
   return (
-    <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 hover:border-primary/20 transition-colors">
-      {/* Tag pill */}
-      <div className="flex justify-center">
-        <span className="bg-orange-50 text-primary text-xs font-medium px-4 py-1 rounded-full border border-orange-100 capitalize">
-          {tag}
-        </span>
-      </div>
-
-      {/* Title & description */}
-      <div>
-        <h3 className="text-base font-bold mb-1">{roadmap.name}</h3>
-        {roadmap.description && (
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{roadmap.description}</p>
-        )}
-      </div>
-
-      {/* Edit / delete */}
-      <div className="flex items-center gap-2">
-        <button className="p-1 text-muted-foreground hover:text-foreground transition-colors">
-          <Pencil className="w-3.5 h-3.5" />
-        </button>
-        <button onClick={() => archiveRoadmap(roadmap.id)}
-          className="p-1 text-muted-foreground hover:text-red-500 transition-colors">
+    <div className="group relative bg-card border border-border rounded-xl p-5 flex flex-col gap-4 hover:-translate-y-0.5 hover:shadow-md transition-all">
+      {/* Title, tag and archive. The title's link covers the whole card. */}
+      <div className="flex items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-base font-semibold">
+              <Link href={`/roadmaps/${roadmap.id}`} className="after:absolute after:inset-0 after:rounded-xl focus:outline-none">
+                {roadmap.name}
+              </Link>
+            </h3>
+            <span className="bg-primary/8 text-primary text-xs font-medium px-2 py-0.5 rounded-full capitalize">{tag}</span>
+          </div>
+          {roadmap.description && (
+            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mt-1">{roadmap.description}</p>
+          )}
+        </div>
+        <button
+          onClick={() => { if (window.confirm(`Archive "${roadmap.name}"?`)) archiveRoadmap(roadmap.id); }}
+          title="Archive roadmap" aria-label="Archive roadmap"
+          className="relative z-10 p-1.5 -m-1 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all flex-shrink-0">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Creative by stage */}
+      {/* Creatives by stage */}
       <div>
-        <p className="text-xs font-medium text-muted-foreground mb-2">Creative by stage</p>
+        <p className="text-xs font-medium text-muted-foreground mb-2">Creatives by stage</p>
         <div className="flex items-end gap-1.5">
           {MINI_STAGES.map(({ key, label }) => {
             const count = counts[key] ?? 0;
@@ -83,7 +83,7 @@ function RoadmapCard({ roadmap, isAgency }: { roadmap: Roadmap; isAgency?: boole
                     ? 'bg-secondary border-border text-foreground'
                     : 'bg-secondary border-border text-muted-foreground'
                 )}>
-                <span className="text-sm font-bold">{count}</span>
+                <span className="text-sm font-semibold tabular-nums">{count}</span>
                 <span className="text-[11px] leading-tight text-center opacity-70">{label}</span>
               </div>
             );
@@ -91,24 +91,23 @@ function RoadmapCard({ roadmap, isAgency }: { roadmap: Roadmap; isAgency?: boole
         </div>
       </div>
 
-      {/* Team + updated */}
-      <div className="flex items-center justify-between">
-        <div className="flex -space-x-2">
-          {TEAM_INITIALS.slice(0, 3).map((init, i) => (
-            <div key={i}
-              className="w-6 h-6 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[11px] font-bold text-muted-foreground">
-              {init[0]}
-            </div>
-          ))}
-        </div>
-        {ago && <p className="text-[11px] text-muted-foreground">Updated {ago}</p>}
+      {/* Team, updated, and where a click goes */}
+      <div className="flex items-center gap-3 mt-auto">
+        {people.length > 0 && (
+          <div className="flex -space-x-2" title={people.join(', ')}>
+            {people.slice(0, 3).map((name) => (
+              <div key={name}
+                className="w-6 h-6 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[11px] font-semibold text-muted-foreground">
+                {name[0].toUpperCase()}
+              </div>
+            ))}
+          </div>
+        )}
+        {ago && <p className="text-[11px] text-muted-foreground truncate min-w-0" title={`Updated ${ago}`}>Updated {ago}</p>}
+        <span className="ml-auto text-xs font-medium text-foreground group-hover:text-primary transition-colors whitespace-nowrap">
+          Open roadmap →
+        </span>
       </div>
-
-      {/* Single full-width action */}
-      <Link href={`/roadmaps/${roadmap.id}`}
-        className="btn btn-primary btn-sm">
-        Open roadmap →
-      </Link>
     </div>
   );
 }
@@ -140,15 +139,15 @@ export default function RoadmapsPage() {
       sub: isAgency ? `Across ${clientCount} client${clientCount !== 1 ? 's' : ''}` : 'In this workspace',
     },
     { label: 'Creatives in progress', value: inFlight, sub: 'Idea → Review' },
-    { label: 'Approved this week', value: approved, sub: 'Ready to launch' },
-    { label: 'Launched', value: launched, sub: 'Last 7 days' },
+    { label: 'Approved', value: approved, sub: 'Ready to launch' },
+    { label: 'Launched', value: launched, sub: 'In these roadmaps' },
   ];
 
   return (
     <div className="px-8 py-8 max-w-6xl">
-      {/* Hero */}
-      <div className="bg-card border border-border rounded-xl p-8 mb-6 relative overflow-hidden">
-        <div className="flex items-start justify-between">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-start justify-between gap-6">
           <div>
             <h1 className="text-[26px] leading-tight font-semibold mb-2">{currentAccount?.name ?? 'Your roadmaps'}</h1>
             <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
@@ -169,7 +168,7 @@ export default function RoadmapsPage() {
         {STATS.map(({ label, value, sub }) => (
           <div key={label} className="bg-card border border-border rounded-xl p-5">
             <p className="text-xs text-muted-foreground mb-2">{label}</p>
-            <p className="text-5xl font-bold text-foreground mb-2">{value}</p>
+            <p className="text-4xl font-semibold tabular-nums tracking-tight text-foreground mb-2">{value}</p>
             <p className="text-xs text-muted-foreground">{sub}</p>
           </div>
         ))}
@@ -178,7 +177,7 @@ export default function RoadmapsPage() {
       {/* All Roadmaps header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold">All roadmaps</h2>
+          <h2 className="text-base font-semibold">All roadmaps</h2>
           <span className="text-xs font-medium bg-secondary border border-border text-muted-foreground px-2.5 py-1 rounded-full">
             {active.length} active
           </span>

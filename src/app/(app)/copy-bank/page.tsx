@@ -88,6 +88,8 @@ function QuickAdd({ angles, products, initialType }: {
   return (
     <div className="bg-card border border-border rounded-xl p-4 mb-6">
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <div className="flex items-center gap-2">
+        <span className="text-sm font-medium">Add</span>
         <div className="flex items-center gap-1 bg-secondary/60 rounded-lg p-0.5">
           {COPY_TYPES.map((t) => (
             <button key={t} type="button" onClick={() => setType(t)}
@@ -96,6 +98,7 @@ function QuickAdd({ angles, products, initialType }: {
               {TYPE_LABEL[t]}
             </button>
           ))}
+        </div>
         </div>
         <button type="button" onClick={() => setMany((v) => !v)}
           className={cn('flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-colors',
@@ -231,7 +234,7 @@ function CopyLine({ entry, usage, angles, products, onDelete, compact = false }:
       </div>
 
       <div className={cn('flex items-center gap-0.5 flex-shrink-0', compact && 'mt-2 -mb-1 justify-end')}>
-        <div className={cn('flex items-center transition-opacity', !compact && 'opacity-0 group-hover:opacity-100 focus-within:opacity-100')}>
+        <div className="flex items-center transition-opacity opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
           {compact && (
             <button type="button" onClick={() => updateCopyEntry(entry.id, { winner: !entry.winner })}
               title="Toggle winner" aria-label="Toggle winner"

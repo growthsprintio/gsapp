@@ -22,6 +22,8 @@ import { CreativeInput } from '@/components/asset-drop';
 const DEFAULT_ANGLES = ['Pain Point', 'Social Proof', 'Hook', 'Curiosity', 'Urgency', 'Lifestyle', 'Before/After', 'Tutorial', 'Comparison', 'Testimonial', 'UGC Raw', 'Founder Story'];
 
 /** Borderless input that only shows its outline on hover and focus. */
+// Reference links read as fields you can click into, unlike the quiet Properties panel.
+const REF_INPUT = 'w-full bg-card border border-border rounded-md px-2.5 py-1.5 text-sm hover:border-foreground/20 focus:border-primary focus:outline-none transition-colors placeholder:text-muted-foreground/60';
 const GHOST = 'w-full bg-transparent border border-transparent rounded-md px-2 py-1.5 text-sm hover:border-border focus:border-primary focus:outline-none transition-colors placeholder:text-muted-foreground/50';
 
 /** A label / value row in the Properties panel. */
@@ -211,7 +213,7 @@ function LinkChips({ value, onChange, placeholder }: {
         onBlur={() => { if (draft.trim()) add(draft); }}
         placeholder={links.length ? 'Add another link' : placeholder}
         aria-invalid={!!error}
-        className={cn(GHOST, error && 'border-amber-500/60')}
+        className={cn(REF_INPUT, error && 'border-amber-500/60')}
       />
       {error && <p className="text-[11px] text-amber-700 mt-1 px-2">{error}</p>}
     </div>
@@ -838,7 +840,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     <textarea value={form.description} onChange={(e) => set('description', e.target.value)}
                       placeholder="Describe what the designer should make — the hook, the look and feel, anything to avoid."
                       rows={4}
-                      className="w-full mt-3 text-sm leading-relaxed bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/50"
+                      className="w-full mt-3 text-sm leading-relaxed bg-muted/40 border border-border rounded-lg px-3 py-2.5 resize-none hover:border-foreground/20 focus:bg-card focus:border-primary focus:outline-none transition-colors placeholder:text-muted-foreground/70"
                     />
                   </div>
 
@@ -866,10 +868,11 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                       {/* Inspiration takes any number of links, shown as chips
                           that wrap sideways — ten links is two short rows, not
                           ten full-width inputs. */}
-                      <div className="grid grid-cols-[120px_minmax(0,1fr)] items-start gap-2">
+                      <div className="grid grid-cols-[120px_minmax(0,1fr)_auto] items-start gap-2">
                         <span className="text-xs text-muted-foreground pt-2 leading-tight">Inspiration &amp; assets</span>
                         <LinkChips value={form.inspirationLink} onChange={(v) => set('inspirationLink', v)}
                           placeholder="Ads to riff on, product shots, logos…" />
+                        <span className="w-[22px]" />
                       </div>
                       {([
                         ['frameioLink', 'Review link', 'Frame.io, Figma or any review link'],
@@ -878,7 +881,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                         <div key={key} className="grid grid-cols-[120px_minmax(0,1fr)_auto] items-center gap-2">
                           <span className="text-xs text-muted-foreground">{label}</span>
                           <input value={form[key]} onChange={(e) => set(key, e.target.value)}
-                            placeholder={ph} className={GHOST} />
+                            placeholder={ph} className={REF_INPUT} />
                           {form[key] ? (
                             <a href={form[key]} target="_blank" rel="noreferrer" title="Open" aria-label={`Open ${label}`}
                               className="p-1 rounded-md text-muted-foreground hover:text-primary transition-colors">
@@ -1070,7 +1073,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                   </div>
                 </div>
 
-                <aside className="px-5 py-6 bg-muted/20">
+                <aside className="px-5 py-6 bg-muted/70">
                   <div className="md:sticky md:top-0">
                     <p className="text-xs font-medium text-muted-foreground mb-3">Preview</p>
                     <AdPreview form={form} asset={previewAsset} />
@@ -1313,13 +1316,8 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
               <div className="flex-1" />
 
               <button type="submit"
-                className={cn(
-                  'rounded-lg px-4 py-2 text-sm transition-colors',
-                  stepIndex === STEPS.length - 1
-                    ? 'btn btn-primary flex-1'
-                    : 'border border-border hover:bg-secondary',
-                )}>
-                {editItem ? 'Save Changes' : 'Save Brief'}
+                className={cn('btn', stepIndex === STEPS.length - 1 ? 'btn-primary' : 'btn-secondary')}>
+                {editItem ? 'Save changes' : 'Save brief'}
               </button>
 
               {stepIndex < STEPS.length - 1 && (

@@ -183,7 +183,8 @@ export default function SettingsPage() {
         <div className="flex-1">
           {tab === 'workspace' && (
             <div className="space-y-5">
-              <div className="bg-card border border-border rounded-xl p-5">
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="p-5">
                 <h3 className="text-sm font-semibold mb-4">Workspace</h3>
                 <div className="space-y-4">
                   <div>
@@ -196,13 +197,14 @@ export default function SettingsPage() {
                     Brand short codes now live in <span className="font-medium">Naming</span>, as the <span className="font-mono">{'{b}'}</span> variable.
                   </p>
                 </div>
+                </div>
+                <div className="flex justify-end px-5 py-3 bg-muted/40 border-t border-border">
+                  <button onClick={handleSave} className="btn btn-primary">
+                    <Save className="w-4 h-4" />
+                    {saved ? 'Saved!' : 'Save changes'}
+                  </button>
+                </div>
               </div>
-
-              <button onClick={handleSave}
-                className="btn btn-primary">
-                <Save className="w-4 h-4" />
-                {saved ? 'Saved!' : 'Save Changes'}
-              </button>
             </div>
           )}
 
