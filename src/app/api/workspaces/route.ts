@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServer, createSupabaseAdmin, supabaseConfigured } from '@/lib/supabase-server';
-import { getSessionWorkspaceId } from '@/lib/meta-session';
+import { getSessionWorkspaceId, getWorkspaceAccess } from '@/lib/meta-session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -82,6 +82,25 @@ export async function POST(req: Request) {
   if (memberError) return NextResponse.json({ error: memberError.message }, { status: 502 });
 
   return NextResponse.json({ ok: true, id: ws.id });
+}
+
+/** PATCH /api/workspaces — rename the active workspace. Admins only. Body: { name } */
+export async function PATCH(req: Request) {
+  const workspaceId = await getSessionWorkspaceId();
+  const admin = createSupabaseAdmin();
+  if (!workspaceId || !admin) return NextResponse.json({ error: 'No workspace.' }, { status: 401 });
+  if (!(await getWorkspaceAccess(workspaceId))?.isAdmin) {
+    return NextResponse.json({ error: 'Only a workspace admin can rename it.' }, { status: 403 });
+  }
+
+  const body = await req.json().catch(() => ({}));
+  const name = String(body.name ?? '').trim();
+  if (!name) return NextResponse.json({ error: 'Workspace name is required.' }, { status: 400 });
+  if (name.length > 80) return NextResponse.json({ error: 'Keep the name under 80 characters.' }, { status: 400 });
+
+  const { error } = await admin.from('workspaces').update({ name }).eq('id', workspaceId);
+  if (error) return NextResponse.json({ error: error.message }, { status: 502 });
+  return NextResponse.json({ ok: true, name });
 }
 
 /** DELETE /api/workspaces?id=... — admins only; cascades members + meta connection. */

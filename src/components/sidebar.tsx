@@ -69,6 +69,16 @@ function AccountSwitcher() {
       .catch(() => {});
   }, []);
 
+  // Settings renames the workspace without a reload.
+  useEffect(() => {
+    const onRename = (e: Event) => {
+      const { id, name } = (e as CustomEvent<{ id: string; name: string }>).detail;
+      setWorkspaces((ws) => ws.map((w) => (w.id === id ? { ...w, name } : w)));
+    };
+    window.addEventListener('gs:workspace-renamed', onRename);
+    return () => window.removeEventListener('gs:workspace-renamed', onRename);
+  }, []);
+
   const current = workspaces.find((w) => w.id === activeId) ?? workspaces[0];
   const initials = current?.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 

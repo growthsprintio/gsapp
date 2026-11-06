@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useAppStore } from '@/lib/store';
+import { useEffect, useState } from 'react';
 import { Save, Building2, Zap, Bell, Tag, Plus, Trash2, Workflow } from 'lucide-react';
 import { MetaConnectionCard } from '@/components/meta-connection-card';
 import { BrandIcon } from '@/components/brand-icon';
@@ -138,16 +137,88 @@ function WorkflowsPanel() {
   );
 }
 
-export default function SettingsPage() {
-  const user = useAppStore((s) => s.user);
-  const [tab, setTab] = useState<'workspace' | 'naming' | 'integrations' | 'workflows' | 'notifications'>('workspace');
+/** Renames the workspace you're in. Admins only; everyone else sees it read-only. */
+function WorkspaceForm() {
+  const [ws, setWs] = useState<{ id: string; name: string; isAdmin: boolean } | null>(null);
+  const [state, setState] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSave = () => {
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/workspaces').then((r) => r.json()).then((d) => {
+      if (cancelled) return;
+      const list: { id: string; name: string; role: string }[] = d.workspaces || [];
+      const current = list.find((w) => w.id === d.activeWorkspaceId) ?? list[0];
+      if (!current) { setState('unavailable'); return; }
+      setWs({ id: current.id, name: current.name, isAdmin: current.role === 'admin' });
+      setName(current.name);
+      setState('ready');
+    }).catch(() => { if (!cancelled) setState('unavailable'); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const trimmed = name.trim();
+  const changed = !!ws && trimmed !== ws.name;
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ws || !changed || !trimmed) return;
+    setSaving(true);
+    setError('');
+    const r = await fetch('/api/workspaces', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: trimmed }),
+    }).catch(() => null);
+    const d = await r?.json().catch(() => ({}));
+    setSaving(false);
+    if (!r?.ok) {
+      setError(d?.error || 'Could not save. Check your connection and try again.');
+      return;
+    }
+    setWs({ ...ws, name: d.name });
+    setName(d.name);
+    window.dispatchEvent(new CustomEvent('gs:workspace-renamed', { detail: { id: ws.id, name: d.name } }));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
+  return (
+    <form onSubmit={save} className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="p-5">
+        <h3 className="text-sm font-semibold mb-4">Workspace</h3>
+        <label className="text-xs font-medium block mb-1.5" htmlFor="workspace-name">Workspace name</label>
+        <input id="workspace-name" value={name} onChange={(e) => { setName(e.target.value); setError(''); }}
+          disabled={state !== 'ready' || !ws?.isAdmin} maxLength={80}
+          placeholder={state === 'loading' ? 'Loading…' : ''}
+          className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+        />
+        {state === 'unavailable' && (
+          <p className="text-xs text-muted-foreground mt-2">Couldn&rsquo;t load your workspace. Reload the page or sign in again.</p>
+        )}
+        {state === 'ready' && !ws?.isAdmin && (
+          <p className="text-xs text-muted-foreground mt-2">Only a workspace admin can change the name.</p>
+        )}
+        {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+        <p className="text-[11px] text-muted-foreground mt-4">
+          Brand short codes now live in <span className="font-medium">Naming</span>, as the <span className="font-mono">{'{b}'}</span> variable.
+        </p>
+      </div>
+      <div className="flex justify-end px-5 py-3 bg-muted/40 border-t border-border">
+        <button type="submit" disabled={!changed || !trimmed || saving || !ws?.isAdmin} className="btn btn-primary">
+          <Save className="w-4 h-4" />
+          {saved ? 'Saved' : saving ? 'Saving…' : 'Save changes'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export default function SettingsPage() {
+  const [tab, setTab] = useState<'workspace' | 'naming' | 'integrations' | 'workflows' | 'notifications'>('workspace');
   const TABS = [
     { id: 'workspace', label: 'Workspace', icon: Building2 },
     { id: 'naming', label: 'Naming', icon: Tag },
@@ -183,28 +254,7 @@ export default function SettingsPage() {
         <div className="flex-1">
           {tab === 'workspace' && (
             <div className="space-y-5">
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
-                <div className="p-5">
-                <h3 className="text-sm font-semibold mb-4">Workspace</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-medium block mb-1.5">Workspace Name</label>
-                    <input defaultValue={user?.team || 'GrowthSprint'}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Brand short codes now live in <span className="font-medium">Naming</span>, as the <span className="font-mono">{'{b}'}</span> variable.
-                  </p>
-                </div>
-                </div>
-                <div className="flex justify-end px-5 py-3 bg-muted/40 border-t border-border">
-                  <button onClick={handleSave} className="btn btn-primary">
-                    <Save className="w-4 h-4" />
-                    {saved ? 'Saved!' : 'Save changes'}
-                  </button>
-                </div>
-              </div>
+              <WorkspaceForm />
             </div>
           )}
 
@@ -214,10 +264,10 @@ export default function SettingsPage() {
             <div className="space-y-3">
               <MetaConnectionCard />
               {[
-                { name: 'Frame.io', brand: 'frameio', desc: 'Sync review and approval status automatically', connected: false },
-                { name: 'Slack', brand: 'slack', desc: 'Get notified when status changes in your pipeline', connected: false },
-                { name: 'Motion', brand: 'motion', desc: 'Pull performance data into your creative workflow', connected: false },
-              ].map(({ name, brand, desc, connected }) => (
+                { name: 'Frame.io', brand: 'frameio', desc: 'Sync review and approval status automatically' },
+                { name: 'Slack', brand: 'slack', desc: 'Get notified when status changes in your pipeline' },
+                { name: 'Motion', brand: 'motion', desc: 'Pull performance data into your creative workflow' },
+              ].map(({ name, brand, desc }) => (
                 <div key={name} className="bg-card border border-border rounded-xl p-5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <BrandIcon brand={brand} />
@@ -226,13 +276,7 @@ export default function SettingsPage() {
                       <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
                     </div>
                   </div>
-                  <button className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
-                    connected
-                      ? 'border-primary/20 bg-primary/5 text-primary'
-                      : 'border-border hover:bg-secondary text-foreground'
-                  }`}>
-                    {connected ? 'Connected' : 'Connect'}
-                  </button>
+                  <span className="text-xs font-medium text-muted-foreground bg-muted rounded-full px-2.5 py-1 flex-shrink-0">Coming soon</span>
                 </div>
               ))}
             </div>
