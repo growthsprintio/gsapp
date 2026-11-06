@@ -250,7 +250,7 @@ function Creatives() {
   const params = useSearchParams();
   const router = useRouter();
   const tab: Tab = params.get('tab') === 'briefs' ? 'briefs' : 'library';
-  const briefCount = useAppStore((s) => s.roadmaps.flatMap((r) => r.items).filter((i) => i.maker === 'creator').length + (s.outreach || []).length);
+  const briefCount = useAppStore((s) => s.roadmaps.flatMap((r) => r.items).filter((i) => i.maker === 'creator' && i.creatorBrief).length + (s.outreach || []).length);
 
   const choose = (t: Tab) => router.replace(t === 'briefs' ? '/creative-bank?tab=briefs' : '/creative-bank', { scroll: false });
 
