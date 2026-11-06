@@ -44,16 +44,6 @@ export const KIND_COPY: Record<OutreachKind, {
   },
 };
 
-export function emptyOutreach(kind: OutreachKind): Omit<OutreachBrief, 'id' | 'createdAt' | 'updatedAt'> {
-  return {
-    kind,
-    title: '',
-    status: 'draft',
-    deliverables: [{ id: Math.random().toString(36).slice(2, 9), label: '', size: kind === 'creator' ? '9:16' : '4:5' }],
-    references: [],
-  };
-}
-
 /**
  * What the recipient is allowed to see. Built field by field rather than by
  * deleting from a copy, so anything added to OutreachBrief later stays
@@ -82,14 +72,6 @@ export type PublicBrief = ReturnType<typeof publicView>;
 
 /** Lines of a textarea, blank ones dropped. */
 export const lines = (v?: string) => (v || '').split('\n').map((l) => l.trim()).filter(Boolean);
-
-export function briefMissing(b: OutreachBrief): string[] {
-  const out: string[] = [];
-  if (!b.title.trim()) out.push('a title');
-  if (!b.overview?.trim()) out.push('an overview');
-  if (!b.deliverables.some((d) => d.label.trim())) out.push('a deliverable');
-  return out;
-}
 
 export function defaultMessage(b: OutreachBrief, sender?: string) {
   const first = b.recipientName?.trim().split(/\s+/)[0];

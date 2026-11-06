@@ -187,6 +187,13 @@
   .btn-secondary:hover:not(:disabled) { background: var(--muted); }
 }
 
+/* Where a "still needed" link lands: a brief pulse so the eye finds the field. */
+@keyframes field-flash {
+  0%, 55% { box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 35%, transparent); }
+  100% { box-shadow: 0 0 0 3px transparent; }
+}
+.field-flash { animation: field-flash 1.6s ease-out; }
+
 /* Native select chevrons sit hard against the right border and differ per
    browser. Draw our own, inset from the edge, matching the lucide chevron
    used elsewhere so every dropdown in the app looks like the same control. */

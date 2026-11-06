@@ -18,6 +18,10 @@ import {
 } from '@/lib/ownership';
 import type { CopyBankEntry } from '@/lib/types';
 import { CreativeInput } from '@/components/asset-drop';
+import { CreatorBriefPanel, ReturnedWork, shareBrief } from '@/components/creator-brief-panel';
+import { emptyCreatorBrief, isDirectAsset, toOutreach } from '@/lib/creator-brief';
+import { useCurrentUser } from '@/lib/use-current-user';
+import type { CreatorBrief, CreativeStatus } from '@/lib/types';
 
 const DEFAULT_ANGLES = ['Pain Point', 'Social Proof', 'Hook', 'Curiosity', 'Urgency', 'Lifestyle', 'Before/After', 'Tutorial', 'Comparison', 'Testimonial', 'UGC Raw', 'Founder Story'];
 
@@ -404,6 +408,8 @@ interface Props {
   onClose: () => void;
   roadmapId: string;
   editItem?: RoadmapItem | null;
+  /** A new brief opened from Creator briefs starts as one. */
+  startAsCreator?: boolean;
 }
 
 const EMPTY = {
@@ -416,7 +422,33 @@ const EMPTY = {
   metaCampaignId: '', metaAdSetId: '', metaCTA: '',
 };
 
-export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
+/** Where each "still needed" item lives, so naming a gap can take you to it. */
+const GAP_FIELD: Record<string, string> = {
+  concept: 'brief-concept',
+  'an idea': 'brief-concept',
+  'a creator': 'cb-creator',
+  'a deliverable': 'cb-deliverable',
+  creative: 'brief-creative',
+  '2–10 cards': 'brief-creative',
+  'primary text': 'copy-primary',
+  headline: 'copy-headline',
+  'landing page': 'copy-landing',
+  CTA: 'copy-cta',
+  'campaign & ad set': 'launch-adset',
+};
+
+function jumpToGap(label: string) {
+  const el = document.getElementById(GAP_FIELD[label] ?? '');
+  if (!el) return;
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  el.focus({ preventScroll: true });
+  // Restart the pulse if this field was already pointed at.
+  el.classList.remove('field-flash');
+  void el.offsetWidth;
+  el.classList.add('field-flash');
+}
+
+export function BriefDrawer({ open, onClose, roadmapId, editItem, startAsCreator }: Props) {
   const addItem = useAppStore((s) => s.addItem);
   const updateItem = useAppStore((s) => s.updateItem);
   const namingConvention = useAppStore((s) => s.namingConvention);
@@ -452,6 +484,19 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   // prefill. Typing a name still works if this call fails.
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [owners, setOwners] = useState<Owners>({});
+  const [maker, setMaker] = useState<'inhouse' | 'creator'>('inhouse');
+  const [creatorBrief, setCreatorBrief] = useState<CreatorBrief | null>(null);
+  // Sharing has to save an unsaved brief, and later saves must update that row
+  // rather than add another.
+  const savedId = useRef<string | null>(null);
+  const [stageOverride, setStageOverride] = useState<CreativeStatus | null>(null);
+  const stage = stageOverride ?? editItem?.status;
+  const me = useCurrentUser();
+  const isCreator = maker === 'creator';
+  const chooseMaker = (m: 'inhouse' | 'creator') => {
+    setMaker(m);
+    if (m === 'creator') setCreatorBrief((cb) => cb ?? emptyCreatorBrief());
+  };
   useEffect(() => {
     if (!open) return;
     fetch('/api/team')
@@ -590,6 +635,12 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     // Same reasoning as variables: hydrate per brief so owners can't carry
     // over from the last one opened. Old briefs' assignee lands as the maker.
     setOwners(editItem ? ownersOf(editItem) : {});
+    const startMaker = editItem ? (editItem.maker ?? 'inhouse') : startAsCreator ? 'creator' : 'inhouse';
+    setMaker(startMaker);
+    setCreatorBrief(editItem?.creatorBrief ?? (startMaker === 'creator' ? emptyCreatorBrief() : null));
+    if (!editItem && startAsCreator) setForm({ ...EMPTY, adFormat: 'ugc', adSize: '9:16' });
+    savedId.current = null;
+    setStageOverride(null);
     setTab('brief');
     // Only an explicitly hand-written name stops the rebuild. Treating any
     // existing name as custom meant editing a saved brief never updated it.
@@ -597,7 +648,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     setNameEdited(!!editItem?.adNameCustom);
     // Reuse the saved index so reopening a brief doesn't renumber the ad.
     setNameIndex(editItem?.nameIndex ?? Math.floor(Math.random() * 99) + 1);
-  }, [editItem, open]);
+  }, [editItem, open, startAsCreator]);
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -656,7 +707,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
   // Launch readiness — the ad set owns budget/targeting/schedule; we only need the creative + destination
   const readiness = [
-    { label: 'Approved status', ok: editItem?.status === 'ready_to_launch' },
+    { label: 'Approved status', ok: stage === 'ready_to_launch' },
     { label: 'Meta connected', ok: !!metaConfigured },
     { label: 'Campaign & ad set selected', ok: !!form.metaAdSetId },
     { label: 'Primary text + headline', ok: !!form.primaryText && !!form.headline },
@@ -673,11 +724,17 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     { id: 'copy' as const, label: 'Ad Setup', hint: 'Copy and destination', doneHint: 'Copy ready' },
     { id: 'launch' as const, label: 'Launch', hint: 'Pick where it runs', doneHint: 'Ready to push' },
   ];
+  const creatorMissing = creatorBrief ? [
+    !creatorBrief.recipientName?.trim() && !creatorBrief.recipientEmail?.trim() && 'a creator',
+    !creatorBrief.deliverables.some((d) => d.label.trim()) && 'a deliverable',
+  ] : [];
   const missingFor = {
     brief: [
       !form.concept && 'concept',
       !form.adFormat && 'format',
-      !creativeReady && (form.adFormat === 'carousel' ? '2–10 cards' : 'creative'),
+      // A creator brief is complete before any work exists: the creative comes
+      // back through the link.
+      ...(isCreator ? creatorMissing : [!creativeReady && (form.adFormat === 'carousel' ? '2–10 cards' : 'creative')]),
     ].filter(Boolean) as string[],
     copy: [
       !form.primaryText && 'primary text',
@@ -687,7 +744,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     ].filter(Boolean) as string[],
     launch: [
       !form.metaAdSetId && 'campaign & ad set',
-      editItem?.status !== 'ready_to_launch' && editItem?.status !== 'launched' && 'approval',
+      stage !== 'ready_to_launch' && stage !== 'launched' && 'approval',
     ].filter(Boolean) as string[],
   };
   const stepState = {
@@ -731,29 +788,97 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const buildPayload = (cb: CreatorBrief | null = creatorBrief) => {
     // customValues was component state only — variable values were lost on
     // close, so reopening a brief regenerated a different ad name.
     const cleanOwners = Object.fromEntries(
       Object.entries(owners).map(([k, v]) => [k, v?.trim() || undefined]).filter(([, v]) => v),
     ) as Owners;
-    const payload = {
+    const makerOwners = isCreator && cb?.recipientName?.trim()
+      ? { ...cleanOwners, maker: cb.recipientName.trim() } : cleanOwners;
+    return {
       ...form,
+      maker,
+      creatorBrief: isCreator && cb ? cb : undefined,
       variables: customValues,
       adNameCustom: nameEdited,
       nameIndex,
-      owners: cleanOwners,
+      owners: makerOwners,
       // Kept in step with the maker so anything still reading the old single
       // field sees the right person.
-      assignee: cleanOwners.maker ?? '',
+      assignee: makerOwners.maker ?? '',
     } as Partial<RoadmapItem>;
-    if (editItem) {
-      updateItem(roadmapId, editItem.id, payload);
-    } else {
-      addItem(roadmapId, { ...payload, status: 'idea' } as Parameters<typeof addItem>[1]);
-    }
+  };
+
+  /** Writes the brief, adding its row the first time. Returns the row's id. */
+  const saveBrief = (payload: Partial<RoadmapItem>) => {
+    const id = editItem?.id ?? savedId.current;
+    if (id) { updateItem(roadmapId, id, payload); return id; }
+    const created = addItem(roadmapId, { ...payload, status: 'idea' } as Parameters<typeof addItem>[1]);
+    savedId.current = created;
+    return created;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveBrief(buildPayload());
+    // Keep the creator's page current. The store already has the edits, so a
+    // failure here only delays them until the next save.
+    if (isCreator && creatorBrief?.shareToken) shareBrief(toOutreach(form, creatorBrief)).catch(() => {});
     onClose();
+  };
+
+  /** Sharing saves too, so a link never exists without its roadmap row. */
+  const onShared = (u: Partial<CreatorBrief>) => {
+    if (!creatorBrief) return;
+    const next = { ...creatorBrief, ...u };
+    setCreatorBrief(next);
+    const id = saveBrief(buildPayload(next));
+    // Sent means the ball is with the creator.
+    if (u.sentAt && (stage === 'idea' || !stage)) {
+      updateItemStatus(roadmapId, id, 'briefed');
+      setStageOverride('briefed');
+    }
+  };
+
+  /** Approve a returned piece: it becomes this ad's creative when it can. */
+  const approveWork = (url: string) => {
+    if (!creatorBrief) return;
+    const next: CreatorBrief = { ...creatorBrief, status: 'approved', usedUrls: [...(creatorBrief.usedUrls ?? []), url] };
+    setCreatorBrief(next);
+    // A share link can't launch, so it's kept as the deliverable until someone
+    // uploads the file. Only a real file moves the ad on to Approved.
+    const direct = isDirectAsset(url);
+    const updated = direct ? { ...form, creativeLink: url } : { ...form, finalDeliverable: url };
+    setForm(updated);
+    const id = saveBrief({ ...buildPayload(next), creativeLink: updated.creativeLink, finalDeliverable: updated.finalDeliverable });
+    if (direct) {
+      updateItemStatus(roadmapId, id, 'ready_to_launch');
+      setStageOverride('ready_to_launch');
+    }
+  };
+
+  /** One brief can return several pieces. Any of them can start its own ad. */
+  const newAdFromWork = (url: string) => {
+    if (!creatorBrief) return;
+    const direct = isDirectAsset(url);
+    const index = Math.floor(Math.random() * 999) + 1;
+    addItem(roadmapId, {
+      ...buildPayload(null),
+      maker: 'creator',
+      creatorBrief: undefined,
+      status: 'in_review',
+      creativeLink: direct ? url : '',
+      finalDeliverable: direct ? form.finalDeliverable : url,
+      nameIndex: index,
+      adNameCustom: false,
+      adName: applyNamingConvention(namingConvention, form, {
+        brand: currentAccount?.name?.slice(0, 3) || 'BRD', index, customValues,
+      }),
+    } as Parameters<typeof addItem>[1]);
+    const next = { ...creatorBrief, usedUrls: [...(creatorBrief.usedUrls ?? []), url] };
+    setCreatorBrief(next);
+    saveBrief(buildPayload(next));
   };
 
   return (
@@ -832,20 +957,45 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
                   {/* Concept is the brief's headline */}
                   <div>
-                    <input value={form.concept} onChange={(e) => set('concept', e.target.value)}
+                    <input id="brief-concept" value={form.concept} onChange={(e) => set('concept', e.target.value)}
                       placeholder="What&rsquo;s the idea?"
                       autoFocus={!editItem}
                       className="w-full text-2xl font-semibold tracking-tight bg-transparent focus:outline-none placeholder:text-muted-foreground/40"
                     />
                     <textarea value={form.description} onChange={(e) => set('description', e.target.value)}
-                      placeholder="Describe what the designer should make — the hook, the look and feel, anything to avoid."
+                      placeholder={isCreator
+                        ? 'What we’re making and why — the story in two or three sentences.'
+                        : 'Describe what the designer should make — the hook, the look and feel, anything to avoid.'}
                       rows={4}
                       className="w-full mt-3 text-sm leading-relaxed bg-muted/40 border border-border rounded-lg px-3 py-2.5 resize-none hover:border-foreground/20 focus:bg-card focus:border-primary focus:outline-none transition-colors placeholder:text-muted-foreground/70"
                     />
                   </div>
 
+                  {/* Once work is back, reviewing it is the job, so it comes first. */}
+                  {isCreator && creatorBrief && (creatorBrief.submissions?.length ?? 0) > 0 && (
+                    <ReturnedWork
+                      submissions={creatorBrief.submissions!}
+                      usedUrls={creatorBrief.usedUrls ?? []}
+                      currentCreative={form.creativeLink}
+                      onUse={approveWork}
+                      onNewAd={newAdFromWork}
+                    />
+                  )}
+
+                  {isCreator && creatorBrief && (
+                    <CreatorBriefPanel
+                      brief={toOutreach(form, creatorBrief)}
+                      cb={creatorBrief}
+                      onChange={(u) => setCreatorBrief((cb) => (cb ? { ...cb, ...u } : cb))}
+                      onBeforeShare={onShared}
+                      sender={me?.name}
+                      missing={[!form.concept && 'an idea', ...creatorMissing].filter(Boolean) as string[]}
+                      onJump={jumpToGap}
+                    />
+                  )}
+
                   {/* The asset */}
-                  <section>
+                  <section id="brief-creative" tabIndex={-1} className="rounded-lg focus:outline-none">
                     <h3 className="text-xs font-semibold mb-2">
                       Creative
                       {form.adFormat === 'carousel' && (
@@ -854,6 +1004,9 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                         </span>
                       )}
                     </h3>
+                    {isCreator && !form.creativeLink && !creatorBrief?.submissions?.length && (
+                      <p className="text-xs text-muted-foreground mb-2">Comes back through the creator&rsquo;s link. You can also add it yourself.</p>
+                    )}
                     <CreativeInput
                       value={form.creativeLink}
                       onChange={(v) => set('creativeLink', v)}
@@ -898,10 +1051,26 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 <aside className="px-4 py-6 bg-muted/20 space-y-0.5">
                   <p className="text-xs font-medium text-muted-foreground px-2 mb-2">Properties</p>
 
+                  <Prop label="Made by">
+                    <div className="flex items-center bg-muted rounded-full p-0.5 w-fit my-0.5" role="radiogroup" aria-label="Made by">
+                      {([['inhouse', 'In-house'], ['creator', 'Creator']] as const).map(([value, label]) => (
+                        <button key={value} type="button" role="radio" aria-checked={maker === value}
+                          onClick={() => chooseMaker(value)}
+                          className={cn('h-6 px-2.5 rounded-full text-xs font-medium transition-colors',
+                            maker === value ? 'bg-card shadow-xs text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Prop>
+
                   <Prop label="Format">
-                    <select value={form.adFormat} onChange={(e) => set('adFormat', e.target.value)}
+                    <select value={form.adFormat} onChange={(e) => {
+                      set('adFormat', e.target.value);
+                      if (e.target.value === 'ugc') chooseMaker('creator');
+                    }}
                       className={cn(GHOST, 'capitalize')}>
-                      {FORMAT_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+                      {FORMAT_OPTIONS.map((f) => <option key={f} value={f}>{f === 'ugc' ? 'UGC' : f}</option>)}
                     </select>
                   </Prop>
 
@@ -975,8 +1144,8 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
                   {/* One person per role; the stage decides whose turn it is.
                       The slot that currently holds the ball is marked. */}
-                  {SLOTS.map((slot) => {
-                    const turn = !!editItem && STAGE_SLOT[editItem.status] === slot;
+                  {SLOTS.filter((slot) => !(isCreator && slot === 'maker')).map((slot) => {
+                    const turn = !!stage && STAGE_SLOT[stage] === slot;
                     // People who do this job first, then everyone else.
                     const fits = team.filter((m) => m.jobRole && SLOT_ROLES[slot].includes(m.jobRole));
                     const rest = team.filter((m) => !fits.includes(m));
@@ -987,7 +1156,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                             onChange={(e) => setOwners((o) => ({ ...o, [slot]: e.target.value }))}
                             list={`owners-${slot}`} placeholder="Unassigned" className={GHOST} />
                           {turn && (
-                            <span title={`Their turn — ${STAGE_ACTION[editItem!.status]}`}
+                            <span title={`Their turn — ${STAGE_ACTION[stage!]}`}
                               className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 mr-1" />
                           )}
                         </div>
@@ -1023,7 +1192,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                         <CopyBankPicker brief={{ product: form.product, angle: form.angle }} entries={bankPrimary} onPick={(v) => set('primaryText', v)} />
                       </div>
                     </div>
-                    <textarea value={form.primaryText} onChange={(e) => set('primaryText', e.target.value)}
+                    <textarea id="copy-primary" value={form.primaryText} onChange={(e) => set('primaryText', e.target.value)}
                       placeholder="The main body copy — what someone reads before they decide to stop scrolling."
                       rows={5} className={cn(FIELD, 'resize-none leading-relaxed')} />
                   </div>
@@ -1036,7 +1205,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                         <CopyBankPicker brief={{ product: form.product, angle: form.angle }} entries={bankHeadlines} onPick={(v) => set('headline', v)} />
                       </div>
                     </div>
-                    <input value={form.headline} onChange={(e) => set('headline', e.target.value)}
+                    <input id="copy-headline" value={form.headline} onChange={(e) => set('headline', e.target.value)}
                       placeholder="Short and punchy" className={FIELD} />
                   </div>
 
@@ -1060,12 +1229,12 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                         <label className="text-xs font-semibold">Landing page</label>
                         <CopyBankPicker entries={bankLandingPages} onPick={(v) => set('landingPage', v)} />
                       </div>
-                      <input value={form.landingPage} onChange={(e) => set('landingPage', e.target.value)}
+                      <input id="copy-landing" value={form.landingPage} onChange={(e) => set('landingPage', e.target.value)}
                         placeholder="https://brand.com/product" className={FIELD} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold block mb-1.5">Button</label>
-                      <select value={form.metaCTA} onChange={(e) => set('metaCTA', e.target.value)} className={FIELD}>
+                      <select id="copy-cta" value={form.metaCTA} onChange={(e) => set('metaCTA', e.target.value)} className={FIELD}>
                         <option value="">Choose…</option>
                         {META_CTAS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                       </select>
@@ -1157,7 +1326,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     </div>
                     <div>
                       <label className="text-xs font-medium block mb-1.5">Ad Set</label>
-                      <select value={form.metaAdSetId}
+                      <select id="launch-adset" value={form.metaAdSetId}
                         onChange={(e) => set('metaAdSetId', e.target.value)}
                         disabled={!form.metaCampaignId}
                         className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50">
@@ -1297,7 +1466,15 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
           <div className="sticky bottom-0 border-t border-border bg-card">
             {stepState[tab].missing.length > 0 && (
               <p className="px-6 pt-3 text-[11px] text-muted-foreground">
-                Still needed here: <span className="text-foreground">{stepState[tab].missing.join(', ')}</span>
+                Still needed here:{' '}
+                {stepState[tab].missing.map((m, i) => (
+                  <span key={m}>
+                    {i > 0 && ', '}
+                    {GAP_FIELD[m]
+                      ? <button type="button" onClick={() => jumpToGap(m)} className="font-medium text-primary hover:underline">{m}</button>
+                      : <span className="text-foreground">{m}</span>}
+                  </span>
+                ))}
               </p>
             )}
             <div className="px-6 py-4 flex items-center gap-3">

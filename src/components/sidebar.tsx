@@ -29,7 +29,7 @@ const NAV = [
 function CreativesSubnav() {
   const tab = useSearchParams().get('tab');
   // Work sent back and not yet looked at — worth a nudge from anywhere.
-  const waiting = useAppStore((s) => (s.outreach || []).filter((b) => b.status === 'submitted').length);
+  const waiting = useAppStore((s) => s.roadmaps.flatMap((r) => r.items).filter((i) => i.creatorBrief?.status === 'submitted').length);
   const items = [
     { key: 'library', label: 'Library', href: '/creative-bank', on: tab !== 'briefs' },
     { key: 'briefs', label: 'Creator briefs', href: '/creative-bank?tab=briefs', on: tab === 'briefs', badge: waiting },

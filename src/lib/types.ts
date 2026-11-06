@@ -62,6 +62,9 @@ export interface RoadmapItem {
    * maker for briefs saved before this existed.
    */
   owners?: { strategist?: string; maker?: string; mediaBuyer?: string };
+  /** Who makes it. Left unset means in-house. */
+  maker?: 'inhouse' | 'creator';
+  creatorBrief?: CreatorBrief;
   dueDate?: string;
   adLength?: string;
   assignee?: string;
@@ -159,6 +162,29 @@ export interface OutreachSubmission {
   url: string;
   note?: string;
   at: string;
+}
+
+/** The creator half of a brief. The rest (idea, product, due date) is on the RoadmapItem. */
+export interface CreatorBrief {
+  /** Identifies the shared copy. Separate from the item id so a moved brief keeps its link. */
+  id: string;
+  status: OutreachStatus;
+  recipientName?: string;
+  recipientEmail?: string;
+  recipientHandle?: string;
+  keyMessages?: string;
+  hooks?: string;
+  dos?: string;
+  donts?: string;
+  deliverables: OutreachDeliverable[];
+  compensation?: string;
+  usageRights?: string;
+  shareToken?: string;
+  sentAt?: string;
+  viewedAt?: string;
+  submissions?: OutreachSubmission[];
+  /** Returned links already turned into this ad or a new one. */
+  usedUrls?: string[];
 }
 
 export interface OutreachBrief {

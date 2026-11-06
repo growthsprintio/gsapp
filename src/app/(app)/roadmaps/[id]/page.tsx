@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { BriefDrawer } from '@/components/brief-drawer';
 import { BulkLaunchModal } from '@/components/bulk-launch-modal';
 import { currentOwner } from '@/lib/ownership';
+import { useCreatorSync } from '@/lib/use-creator-sync';
 
 // ─── column config ───────────────────────────────────────────────────────────
 
@@ -261,6 +262,7 @@ const FILTER_ON = 'border-primary/30 bg-primary/8 text-primary hover:bg-primary/
 
 export default function RoadmapDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  useCreatorSync();
   const roadmaps = useAppStore((s) => s.roadmaps);
   const updateItemStatus = useAppStore((s) => s.updateItemStatus);
   const roadmap = roadmaps.find((r) => r.id === id);

@@ -78,10 +78,11 @@ export interface CurrentOwner {
 }
 
 /** Who has the ball right now, given the stage. */
-export function currentOwner(item: Pick<RoadmapItem, 'status' | 'owners' | 'assignee'>): CurrentOwner {
+export function currentOwner(item: Pick<RoadmapItem, 'status' | 'owners' | 'assignee' | 'maker'>): CurrentOwner {
   const slot = STAGE_SLOT[item.status] ?? 'strategist';
   const name = ownersOf(item)[slot]?.trim() || undefined;
-  return { slot, name, role: SLOT_LABEL[slot], action: STAGE_ACTION[item.status] ?? '' };
+  const role = slot === 'maker' && item.maker === 'creator' ? 'Creator' : SLOT_LABEL[slot];
+  return { slot, name, role, action: STAGE_ACTION[item.status] ?? '' };
 }
 
 export interface TeamMember {

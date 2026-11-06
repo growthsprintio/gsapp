@@ -205,6 +205,20 @@ export function buildDuplicateFields(
     // Copying a live ad gives you an approved draft, not a second live ad.
     status: source.status === 'launched' ? 'ready_to_launch' : source.status,
     adNameCustom: source.adNameCustom || (!!source.adName && !rebuildsSame),
+    // Same brief, ready to send to someone else. It needs its own link, or work
+    // sent back would land on the original as well.
+    ...(source.creatorBrief && {
+      creatorBrief: {
+        ...source.creatorBrief,
+        id: nanoid(),
+        status: 'draft' as const,
+        shareToken: undefined,
+        sentAt: undefined,
+        viewedAt: undefined,
+        submissions: undefined,
+        usedUrls: undefined,
+      },
+    }),
   };
 }
 
