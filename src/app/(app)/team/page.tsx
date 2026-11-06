@@ -137,7 +137,7 @@ export default function TeamPage() {
           <p className="text-sm text-muted-foreground mt-0.5">Who&rsquo;s on the team, what they do, and what they can access. Job roles decide who briefs are routed to.</p>
         </div>
         <button onClick={() => setShowInvite(!showInvite)}
-          className="flex items-center gap-2 bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+          className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium pl-3.5 pr-4 h-9 rounded-full shadow-sm whitespace-nowrap flex-shrink-0 hover:bg-primary/90 transition-colors">
           <Plus className="w-4 h-4" /> Add Member
         </button>
       </div>
