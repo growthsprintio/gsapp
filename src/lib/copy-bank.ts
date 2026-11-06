@@ -28,16 +28,6 @@ export const TYPE_PLURAL: Record<CopyBankType, string> = {
   landing_page: 'Landing pages',
 };
 
-/**
- * Meta's recommended lengths. Going over isn't rejected — Meta truncates
- * behind "See more" — so these drive an amber warning, not an error.
- */
-export const COPY_LIMIT: Partial<Record<CopyBankType, number>> = {
-  primary_text: 125,
-  headline: 40,
-  description: 30,
-};
-
 export const isCopyType = (t: CopyBankType): t is CopyType =>
   (COPY_TYPES as readonly string[]).includes(t);
 

@@ -222,8 +222,10 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle, flash, onDuplic
             <Zap className="w-3 h-3" /> Launch
           </button>
         ) : item.metaAdId ? (
-          <span className="flex items-center gap-1 text-xs text-primary font-medium">
-            <Zap className="w-3 h-3" /> Live
+          // As pushed: an ad turned on or off later in Ads Manager won't show here.
+          <span className={cn('flex items-center gap-1 text-xs font-medium',
+            item.metaAdStatus === 'ACTIVE' ? 'text-primary' : 'text-muted-foreground')}>
+            <Zap className="w-3 h-3" /> {item.metaAdStatus === 'ACTIVE' ? 'Active' : 'Paused'}
           </span>
         ) : (
           <span className="text-xs text-muted-foreground">—</span>
@@ -563,7 +565,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
         items={selectedItems.filter((i) => i.status === 'ready_to_launch')}
         onLaunched={(results) => {
           results.filter((r) => r.ok).forEach((r) => {
-            updateItem(roadmap.id, r.id, { metaAdId: r.adId });
+            updateItem(roadmap.id, r.id, { metaAdId: r.adId, metaAdStatus: r.status });
             updateItemStatus(roadmap.id, r.id, 'launched');
           });
           clearSelection();

@@ -17,6 +17,7 @@ export interface Account {
 }
 
 export type AdFormat = 'static' | 'video' | 'carousel' | 'ugc' | 'motion' | 'collection';
+export type MetaAdStatus = 'PAUSED' | 'ACTIVE';
 export type AdPlatform = 'meta' | 'tiktok' | 'pinterest' | 'google';
 
 export interface RoadmapItem {
@@ -66,6 +67,8 @@ export interface RoadmapItem {
   assignee?: string;
   launchedAt?: string;
   metaAdId?: string;
+  /** How it was pushed. Ads Manager can change it later; earlier pushes were all paused. */
+  metaAdStatus?: MetaAdStatus;
   // ── Meta launch config (Phase 1: captured now, pushed to Marketing API later) ──
   metaAdAccountId?: string;
   metaPageId?: string;

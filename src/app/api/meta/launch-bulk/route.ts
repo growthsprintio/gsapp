@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSessionMetaConfig } from '@/lib/meta-session';
+import { getSessionMetaConfig, canLaunchActive } from '@/lib/meta-session';
 import { launchToMeta, type LaunchPayload } from '@/lib/meta';
 
 export const runtime = 'nodejs';
@@ -32,13 +32,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Launch at most 25 creatives at a time.' }, { status: 400 });
   }
 
+  // One choice for the batch, set last so an item can't carry its own.
+  const status = body?.status === 'ACTIVE' ? 'ACTIVE' : 'PAUSED';
+  if (status === 'ACTIVE' && !(await canLaunchActive())) return NextResponse.json({ error: 'Only a workspace admin can launch an ad as active. Launch it paused instead.' }, { status: 403 });
+
   // Sequential on purpose — Meta rate-limits ad creation, and a partial failure
   // is easier to reason about than a burst of parallel errors.
-  const results: { id: string; ok: boolean; adId?: string; error?: string }[] = [];
+  const results: { id: string; ok: boolean; adId?: string; status?: 'PAUSED' | 'ACTIVE'; error?: string }[] = [];
   for (const item of items) {
     try {
-      const res = await launchToMeta(cfg, { ...item, metaAdSetId: adSetId });
-      results.push({ id: item.id, ok: true, adId: res.adId });
+      const res = await launchToMeta(cfg, { ...item, metaAdSetId: adSetId, status });
+      results.push({ id: item.id, ok: true, adId: res.adId, status });
     } catch (e) {
       results.push({ id: item.id, ok: false, error: e instanceof Error ? e.message : 'Failed.' });
     }

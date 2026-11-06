@@ -59,6 +59,16 @@ export async function getWorkspaceAccess(workspaceId: string): Promise<{ userId:
 }
 
 /**
+ * Going active spends the workspace's money, so it takes an admin. With no
+ * workspace (the legacy shared-password setup) there are no roles to check.
+ */
+export async function canLaunchActive(): Promise<boolean> {
+  const workspaceId = await getSessionWorkspaceId();
+  if (!workspaceId) return true;
+  return !!(await getWorkspaceAccess(workspaceId))?.isAdmin;
+}
+
+/**
  * Meta config for the current session's workspace, falling back to env vars.
  * Deriving the workspace from the session (rather than a query param) means a
  * caller can't point the launch at someone else's ad account.

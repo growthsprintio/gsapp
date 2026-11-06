@@ -8,7 +8,7 @@ import { useAppStore } from '@/lib/store';
 import type { CopyBankEntry, CopyBankType, RoadmapItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
-  COPY_TYPES, COPY_LIMIT, TYPE_LABEL, TYPE_PLURAL, isCopyType, usageOf, splitPasted,
+  COPY_TYPES, TYPE_LABEL, TYPE_PLURAL, isCopyType, usageOf, splitPasted,
   type CopyType, type StrategyType,
 } from '@/lib/copy-bank';
 
@@ -18,18 +18,6 @@ type Sort = 'recent' | 'used' | 'az';
 const INPUT = 'w-full bg-card border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50';
 
 /* ───────────────────────────── small pieces ───────────────────────────── */
-
-/** n/limit against Meta's recommended length — amber, not red, when over. */
-function Counter({ type, n }: { type: CopyBankType; n: number }) {
-  const max = COPY_LIMIT[type];
-  if (!max || n === 0) return null;
-  return (
-    <span title={n > max ? `Meta shows about ${max} characters before "See more"` : `Meta recommends up to ${max}`}
-      className={cn('text-[11px] tabular-nums flex-shrink-0', n > max ? 'text-amber-600 font-medium' : 'text-muted-foreground')}>
-      {n}/{max}
-    </span>
-  );
-}
 
 function CopyButton({ text }: { text: string }) {
   const [done, setDone] = useState(false);
@@ -146,7 +134,6 @@ function QuickAdd({ angles, products, initialType }: {
 
         <div className="flex-1" />
         {flash && <span className="text-xs text-primary flex items-center gap-1"><Check className="w-3.5 h-3.5" />{flash}</span>}
-        {!many && <Counter type={type} n={text.trim().length} />}
         <span className="text-[11px] text-muted-foreground hidden sm:inline">
           {multiline ? 'Ctrl + Enter' : 'Enter'} to add
         </span>
@@ -211,7 +198,6 @@ function CopyLine({ entry, usage, angles, products, onDelete, compact = false }:
             <option value="">Any product</option>
             {products.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
-          <Counter type={entry.type} n={draft.content.trim().length} />
           <div className="flex-1" />
           <button type="button" onClick={() => setEditing(false)}
             className="btn btn-secondary btn-sm">Cancel</button>
@@ -245,7 +231,6 @@ function CopyLine({ entry, usage, angles, products, onDelete, compact = false }:
       </div>
 
       <div className={cn('flex items-center gap-0.5 flex-shrink-0', compact && 'mt-2 -mb-1 justify-end')}>
-        <Counter type={entry.type} n={entry.content.length} />
         <div className={cn('flex items-center transition-opacity', !compact && 'opacity-0 group-hover:opacity-100 focus-within:opacity-100')}>
           {compact && (
             <button type="button" onClick={() => updateCopyEntry(entry.id, { winner: !entry.winner })}

@@ -200,6 +200,7 @@ export function buildDuplicateFields(
   return {
     // The copy has not been pushed, so it isn't that ad.
     metaAdId: undefined,
+    metaAdStatus: undefined,
     launchedAt: undefined,
     // Copying a live ad gives you an approved draft, not a second live ad.
     status: source.status === 'launched' ? 'ready_to_launch' : source.status,

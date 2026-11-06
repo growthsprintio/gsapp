@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import { applyNamingConvention, getBriefVariables } from '@/lib/utils';
+import { LaunchStatusToggle } from './launch-status';
 import {
   FORMAT_OPTIONS, SIZE_OPTIONS, type RoadmapItem, type AdFormat,
   META_CTAS,
@@ -434,7 +435,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const customVars = getBriefVariables(namingConvention);
   const [metaConfigured, setMetaConfigured] = useState<boolean | null>(null);
   const [metaAccount, setMetaAccount] = useState<string | null>(null);
-  const [adSets, setAdSets] = useState<{ id: string; name: string; status: string; campaignId: string; campaignName: string }[]>([]);
+  const [adSets, setAdSets] = useState<{ id: string; name: string; status: string; campaignStatus?: string; campaignId: string; campaignName: string }[]>([]);
   const [adSetsLoading, setAdSetsLoading] = useState(false);
   const [adSetsError, setAdSetsError] = useState('');
   const [adSetsNonce, setAdSetsNonce] = useState(0);
@@ -473,6 +474,8 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   const [campaignCount, setCampaignCount] = useState<number | null>(null);
   const [adAccountId, setAdAccountId] = useState<string | null>(null);
   const [launchState, setLaunchState] = useState<'idle' | 'launching' | 'done' | 'error'>('idle');
+  const [adStatus, setAdStatus] = useState<'PAUSED' | 'ACTIVE'>('PAUSED');
+  const pushedStatus = editItem?.metaAdStatus ?? adStatus;
   const [launchError, setLaunchError] = useState('');
   // Once the user types their own ad name we stop auto-generating it.
   const [nameEdited, setNameEdited] = useState(false);
@@ -588,6 +591,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
     setTab('brief');
     // Only an explicitly hand-written name stops the rebuild. Treating any
     // existing name as custom meant editing a saved brief never updated it.
+    setAdStatus('PAUSED');
     setNameEdited(!!editItem?.adNameCustom);
     // Reuse the saved index so reopening a brief doesn't renumber the ad.
     setNameIndex(editItem?.nameIndex ?? Math.floor(Math.random() * 99) + 1);
@@ -711,11 +715,12 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
           adFormat: form.adFormat,
           metaCTA: form.metaCTA,
           metaAdSetId: form.metaAdSetId,
+          status: adStatus,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Push failed.');
-      updateItem(roadmapId, editItem.id, { metaAdId: data.adId });
+      updateItem(roadmapId, editItem.id, { metaAdId: data.adId, metaAdStatus: data.status });
       updateItemStatus(roadmapId, editItem.id, 'launched');
       setLaunchState('done');
     } catch (err) {
@@ -1246,13 +1251,19 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                   {editItem?.metaAdId || launchState === 'done' ? (
                     <div className="flex items-center gap-2 text-primary text-xs font-medium justify-center py-2">
                       <Check className="w-4 h-4" />
-                      Pushed to Meta (paused){editItem?.metaAdId ? ` · ${editItem.metaAdId}` : ''}
+                      Pushed to Meta ({pushedStatus === 'ACTIVE' ? 'active' : 'paused'}){editItem?.metaAdId ? ` · ${editItem.metaAdId}` : ''}
                     </div>
                   ) : (
+                    <>
+                    <div className="mb-3">
+                      <LaunchStatusToggle value={adStatus} onChange={setAdStatus}
+                        adSetStatus={adSets.find((a) => a.id === form.metaAdSetId)?.status}
+                        campaignStatus={adSets.find((a) => a.id === form.metaAdSetId)?.campaignStatus} />
+                    </div>
                     <button type="button"
                       onClick={handlePush}
                       disabled={!launchReady || !metaConfigured || launchState === 'launching'}
-                      title={!metaConfigured ? 'Connect Meta in your environment variables' : launchReady ? 'Create a paused ad on Meta' : 'Complete the checklist to enable'}
+                      title={!metaConfigured ? 'Connect Meta in your environment variables' : launchReady ? `Create ${adStatus === 'ACTIVE' ? 'an active' : 'a paused'} ad on Meta` : 'Complete the checklist to enable'}
                       className="btn btn-primary w-full">
                       {launchState === 'launching' ? (
                         <>
@@ -1261,14 +1272,17 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                         </>
                       ) : (
                         <>
-                          <ExternalLink className="w-4 h-4" /> Push to Meta
+                          <ExternalLink className="w-4 h-4" /> Push to Meta {adStatus === 'ACTIVE' ? 'as active' : 'as paused'}
                         </>
                       )}
                     </button>
+                    </>
                   )}
                   <p className="text-[11px] text-muted-foreground mt-2 text-center">
                     {metaConfigured
-                      ? 'Creates a PAUSED ad inside the ad set you picked — activate it in Ads Manager.'
+                      ? pushedStatus === 'ACTIVE'
+                        ? 'Creates a live ad inside the ad set you picked.'
+                        : 'Creates a paused ad inside the ad set you picked. Turn it on in Ads Manager.'
                       : 'Connect Meta in Settings → Integrations to enable real pushes.'}
                   </p>
                 </div>

@@ -4,8 +4,8 @@
  *
  * Model: ads are launched INTO EXISTING campaigns/ad sets (picked in the UI).
  * We never create campaigns or ad sets — budget, targeting, schedule and
- * placements are owned by the ad set the user selects. Everything we create
- * (creative + ad) starts PAUSED for human review.
+ * placements are owned by the ad set the user selects. Ads start PAUSED for
+ * human review unless the launch explicitly asks for ACTIVE.
  */
 
 export interface MetaConfig {
@@ -110,6 +110,7 @@ export interface AdSetOption {
   status: string;
   campaignId: string;
   campaignName: string;
+  campaignStatus: string;
 }
 
 /**
@@ -136,6 +137,7 @@ export async function listAdSets(cfg: MetaConfig): Promise<AdSetOption[]> {
     status: a.status,
     campaignId: a.campaign?.id || '',
     campaignName: a.campaign?.name || 'Unknown campaign',
+    campaignStatus: a.campaign?.status || '',
   }));
 }
 
@@ -179,6 +181,8 @@ export interface LaunchPayload {
   adFormat?: string;
   metaCTA?: string;
   metaAdSetId?: string; // REQUIRED — the existing ad set to launch into
+  /** Anything but an explicit 'ACTIVE' launches paused. */
+  status?: string;
 }
 
 /** Split a creative field into individual asset URLs. */
@@ -298,12 +302,12 @@ export async function launchToMeta(cfg: MetaConfig, p: LaunchPayload): Promise<L
     object_story_spec: storySpec,
   });
 
-  // 2. Ad — into the selected existing ad set, PAUSED for review
+  // 2. Ad — into the selected existing ad set, paused unless asked otherwise
   const ad = await metaPost(cfg, `${cfg.adAccountId}/ads`, {
     name: p.adName,
     adset_id: p.metaAdSetId,
     creative: { creative_id: creative.id },
-    status: 'PAUSED',
+    status: p.status === 'ACTIVE' ? 'ACTIVE' : 'PAUSED',
   });
 
   return { creativeId: creative.id, adId: ad.id };

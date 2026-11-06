@@ -3,14 +3,15 @@
 import { useEffect, useState } from 'react';
 import { X, Zap, Check, AlertCircle, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { RoadmapItem } from '@/lib/types';
+import type { MetaAdStatus, RoadmapItem } from '@/lib/types';
+import { LaunchStatusToggle } from './launch-status';
 import { META_CTAS } from '@/lib/types';
 
 interface AdSetOption {
-  id: string; name: string; status: string; campaignId: string; campaignName: string;
+  id: string; name: string; status: string; campaignId: string; campaignName: string; campaignStatus?: string;
 }
 
-interface Result { id: string; ok: boolean; adId?: string; error?: string }
+interface Result { id: string; ok: boolean; adId?: string; status?: MetaAdStatus; error?: string }
 
 /** Pick one campaign + ad set, then push every selected creative into it. */
 export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
@@ -24,13 +25,14 @@ export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
   const [campaignId, setCampaignId] = useState('');
   const [adSetId, setAdSetId] = useState('');
   const [cta, setCta] = useState('');
+  const [adStatus, setAdStatus] = useState<MetaAdStatus>('PAUSED');
   const [state, setState] = useState<'idle' | 'launching' | 'done'>('idle');
   const [results, setResults] = useState<Result[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!open) return;
-    setState('idle'); setResults([]); setError('');
+    setState('idle'); setResults([]); setError(''); setAdStatus('PAUSED');
     setLoading(true);
     fetch('/api/meta/adsets')
       .then((r) => r.json())
@@ -57,6 +59,7 @@ export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           metaAdSetId: adSetId,
+          status: adStatus,
           items: ready.map((i) => ({
             id: i.id,
             adName: i.adName || i.concept || 'Untitled',
@@ -93,7 +96,7 @@ export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
               <Zap className="w-4 h-4 text-primary" /> Launch {items.length} creative{items.length !== 1 ? 's' : ''}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              All selected ads go into the same ad set, created paused.
+              All selected ads go into the same ad set.
             </p>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -177,6 +180,10 @@ export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
                 </select>
               </div>
 
+              <LaunchStatusToggle value={adStatus} onChange={setAdStatus}
+                adSetStatus={adSets.find((a) => a.id === adSetId)?.status}
+                campaignStatus={adSets.find((a) => a.id === adSetId)?.campaignStatus} />
+
               {/* What will actually go out */}
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="px-3 py-2 bg-muted/50 border-b border-border">
@@ -226,7 +233,7 @@ export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
                   Launching {ready.length}…
                 </>
               ) : (
-                <><Zap className="w-4 h-4" /> Launch {ready.length} paused</>
+                <><Zap className="w-4 h-4" /> Launch {ready.length} {adStatus === 'ACTIVE' ? 'active' : 'paused'}</>
               )}
             </button>
           )}
