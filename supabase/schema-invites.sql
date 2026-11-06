@@ -34,13 +34,9 @@ create index if not exists workspace_invites_email_idx on public.workspace_invit
 
 alter table public.workspace_invites enable row level security;
 
--- Members can see their workspace's invites; the server (service role) manages
--- creation and acceptance.
+-- No policies on purpose: with RLS on and none defined, the public API key can't
+-- touch this table. Only the server reads and writes it, and it checks the
+-- caller is an admin. A members-can-write policy would let any member invite
+-- themselves back in as an admin, and read access would expose invite links.
 drop policy if exists "members read invites" on public.workspace_invites;
-create policy "members read invites" on public.workspace_invites
-  for select using (public.is_member(workspace_id));
-
--- No write policy on purpose. Only the server writes invites, and it checks the
--- caller is an admin. A members-can-write policy would let any member use the
--- public API key to invite themselves back in as an admin.
 drop policy if exists "members manage invites" on public.workspace_invites;

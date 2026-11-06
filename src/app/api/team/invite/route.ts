@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServer, createSupabaseAdmin } from '@/lib/supabase-server';
-import { getSessionWorkspaceId } from '@/lib/meta-session';
+import { getSessionWorkspaceId, getWorkspaceAccess } from '@/lib/meta-session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,6 +10,8 @@ export async function GET(req: Request) {
   const workspaceId = await getSessionWorkspaceId();
   const admin = createSupabaseAdmin();
   if (!workspaceId || !admin) return NextResponse.json({ invites: [] });
+  // Invite links let someone join, so only admins get to see them.
+  if (!(await getWorkspaceAccess(workspaceId))?.isAdmin) return NextResponse.json({ invites: [] });
 
   const { data, error } = await admin
     .from('workspace_invites')
@@ -42,9 +44,11 @@ export async function POST(req: Request) {
   if (!user || !workspaceId || !admin) {
     return NextResponse.json({ error: 'Not signed in, or no workspace.' }, { status: 401 });
   }
+  if (!(await getWorkspaceAccess(workspaceId))?.isAdmin) return NextResponse.json({ error: 'Only a workspace admin can do that.' }, { status: 403 });
 
   const { email, role = 'member' } = await req.json().catch(() => ({}));
   if (!email) return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
+  if (!['admin', 'member', 'viewer'].includes(role)) return NextResponse.json({ error: 'Unknown role.' }, { status: 400 });
   const normalized = String(email).trim().toLowerCase();
 
   // Already has an account → join them straight away.
@@ -91,6 +95,7 @@ export async function DELETE(req: Request) {
   const workspaceId = await getSessionWorkspaceId();
   const admin = createSupabaseAdmin();
   if (!workspaceId || !admin) return NextResponse.json({ error: 'No workspace.' }, { status: 400 });
+  if (!(await getWorkspaceAccess(workspaceId))?.isAdmin) return NextResponse.json({ error: 'Only a workspace admin can do that.' }, { status: 403 });
 
   const id = new URL(req.url).searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'id is required.' }, { status: 400 });

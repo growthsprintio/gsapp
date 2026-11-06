@@ -38,6 +38,26 @@ export async function getSessionWorkspaceId(): Promise<string | null> {
   }
 }
 
+/** Who is calling, and whether they administer this workspace. */
+export async function getWorkspaceAccess(workspaceId: string): Promise<{ userId: string; isAdmin: boolean } | null> {
+  try {
+    const supabase = await createSupabaseServer();
+    const { data: { user } } = await supabase.auth.getUser();
+    const admin = createSupabaseAdmin();
+    if (!user || !admin) return null;
+    const { data } = await admin
+      .from('workspace_members')
+      .select('role')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!data) return null;
+    return { userId: user.id, isAdmin: data.role === 'admin' };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Meta config for the current session's workspace, falling back to env vars.
  * Deriving the workspace from the session (rather than a query param) means a

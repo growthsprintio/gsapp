@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdmin, supabaseConfigured } from '@/lib/supabase-server';
-import { getSessionWorkspaceId } from '@/lib/meta-session';
+import { getSessionWorkspaceId, getWorkspaceAccess } from '@/lib/meta-session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 type Role = 'admin' | 'member' | 'viewer';
+const ROLES: Role[] = ['admin', 'member', 'viewer'];
 
 /** GET /api/team — real members of the signed-in user's workspace. */
 export async function GET() {
@@ -63,9 +64,11 @@ export async function POST(req: Request) {
   if (!workspaceId || !admin) {
     return NextResponse.json({ error: 'No workspace or Supabase is not configured.' }, { status: 400 });
   }
+  if (!(await getWorkspaceAccess(workspaceId))?.isAdmin) return NextResponse.json({ error: 'Only a workspace admin can do that.' }, { status: 403 });
 
   const { email, role = 'member' } = await req.json().catch(() => ({}));
   if (!email) return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
+  if (!ROLES.includes(role)) return NextResponse.json({ error: 'Unknown role.' }, { status: 400 });
 
   const { data: userList } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
   const match = (userList?.users || []).find(
@@ -97,6 +100,26 @@ export async function PATCH(req: Request) {
   const { userId } = body;
   if (!userId) return NextResponse.json({ error: 'userId is required.' }, { status: 400 });
 
+  // Anyone can set their own name and job role. Access levels, and anything
+  // about someone else, are for admins.
+  const access = await getWorkspaceAccess(workspaceId);
+  if (!access?.isAdmin && (access?.userId !== userId || body.role !== undefined)) return NextResponse.json({ error: 'Only a workspace admin can do that.' }, { status: 403 });
+  if (body.role !== undefined && !ROLES.includes(body.role)) {
+    return NextResponse.json({ error: 'Unknown role.' }, { status: 400 });
+  }
+
+  // Same guard as removing: a workspace always keeps one admin.
+  if (body.role !== undefined && body.role !== 'admin') {
+    const { data: admins } = await admin
+      .from('workspace_members')
+      .select('user_id')
+      .eq('workspace_id', workspaceId)
+      .eq('role', 'admin');
+    if ((admins || []).length <= 1 && (admins || []).some((a) => a.user_id === userId)) {
+      return NextResponse.json({ error: 'This workspace needs at least one admin.' }, { status: 400 });
+    }
+  }
+
   const updates: Record<string, string | null> = {};
   if (body.role !== undefined) updates.role = body.role;
   if (body.jobRole !== undefined) updates.job_role = body.jobRole || null;
@@ -118,6 +141,7 @@ export async function DELETE(req: Request) {
   const workspaceId = await getSessionWorkspaceId();
   const admin = createSupabaseAdmin();
   if (!workspaceId || !admin) return NextResponse.json({ error: 'No workspace.' }, { status: 400 });
+  if (!(await getWorkspaceAccess(workspaceId))?.isAdmin) return NextResponse.json({ error: 'Only a workspace admin can do that.' }, { status: 403 });
 
   const userId = new URL(req.url).searchParams.get('userId');
   if (!userId) return NextResponse.json({ error: 'userId is required.' }, { status: 400 });
