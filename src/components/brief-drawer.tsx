@@ -1087,7 +1087,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 <div className="bg-secondary/60 border border-border rounded-lg p-4">
                   <p className="text-xs font-medium mb-1">Meta launch setup</p>
                   <p className="text-xs text-muted-foreground">
-                    Pick the existing campaign and ad set to launch this creative into. Budget, targeting, schedule and placements are owned by the ad set — we only create the ad (paused).
+                    Pick the existing campaign and ad set to launch this creative into. Budget, targeting, schedule and placements are owned by the ad set — we only create the ad.
                   </p>
                   {metaConfigured && metaAccount && (
                     <p className="text-[11px] text-primary font-mono mt-2">Pushing to {metaAccount}</p>
