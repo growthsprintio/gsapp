@@ -257,7 +257,7 @@ export function NamingSettings() {
         {dirty && <span className="text-xs text-muted-foreground">Unsaved changes</span>}
         <button type="button" onClick={() => { save(draft); setSaved(true); setTimeout(() => setSaved(false), 2000); }}
           disabled={!dirty && !saved}
-          className="flex items-center gap-1.5 h-9 pl-3.5 pr-4 rounded-full bg-primary text-white text-sm font-medium shadow-sm hover:bg-primary/90 disabled:opacity-40 transition-colors">
+          className="btn btn-primary">
           <Check className="w-4 h-4" /> {saved ? 'Saved' : 'Save'}
         </button>
       </div>
@@ -290,7 +290,7 @@ function ExampleName({ segments, separator, tintOf, hover, full }: {
           : segments.map((s, i) => (
             <span key={s.key}>
               {i > 0 && <span className="text-muted-foreground">{separator}</span>}
-              <span className={cn('rounded px-0.5 -mx-0.5 transition-colors',
+              <span className={cn('rounded-md px-0.5 -mx-0.5 transition-colors',
                 hover === s.key ? tintOf(s.key) : hover ? 'opacity-40' : '')}>{s.text}</span>
             </span>
           ))}
@@ -334,7 +334,7 @@ function PropertyRow({ v, tint, on, style, values, detected, dragging, onHover, 
       </button>
       <button type="button" onClick={onEdit} className="text-left">
         {v.prefix ? (
-          <span className={cn('font-mono text-xs px-1.5 py-0.5 rounded border border-border bg-background', style !== 'readable' && 'opacity-50')}
+          <span className={cn('font-mono text-xs px-1.5 py-0.5 rounded-md border border-border bg-background', style !== 'readable' && 'opacity-50')}
             title={style !== 'readable' ? 'Identifiers show when values are set to “With identifiers”' : undefined}>
             {v.prefix}
           </span>
@@ -385,7 +385,7 @@ function EditProperty({ v, style, inName, detected, example, onChange, onRemove,
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/25" onClick={onClose} />
-      <div className="relative w-full max-w-[560px] max-h-[88vh] flex flex-col bg-card rounded-2xl shadow-xl border border-border">
+      <div className="relative w-full max-w-[560px] max-h-[88vh] flex flex-col bg-card rounded-xl shadow-xl border border-border">
         <div className="flex items-center justify-between px-6 h-14 border-b border-border flex-shrink-0">
           <h3 className="text-base font-semibold">Edit property</h3>
           <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-full hover:bg-foreground/5 text-muted-foreground">

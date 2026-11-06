@@ -90,7 +90,7 @@ function AdPreview({ form, asset }: {
           </p>
           {form.adDescription && <p className="text-[11px] text-muted-foreground truncate">{form.adDescription}</p>}
         </div>
-        <span className={cn('text-[11px] font-semibold rounded px-2.5 py-1.5 flex-shrink-0',
+        <span className={cn('text-[11px] font-semibold rounded-md px-2.5 py-1.5 flex-shrink-0',
           cta ? 'bg-secondary border border-border' : 'border border-dashed border-border text-muted-foreground')}>
           {cta ?? 'Button'}
         </span>
@@ -192,7 +192,7 @@ function LinkChips({ value, onChange, placeholder }: {
                 {shortLink(url)}
               </a>
               <button type="button" onClick={() => remove(url)} aria-label={`Remove ${shortLink(url)}`}
-                className="p-0.5 rounded text-muted-foreground hover:text-foreground flex-shrink-0">
+                className="p-0.5 rounded-md text-muted-foreground hover:text-foreground flex-shrink-0">
                 <X className="w-3 h-3" />
               </button>
             </span>
@@ -310,7 +310,7 @@ function TagMultiSelect({ selected, onChange, options, placeholder, onCreate, gh
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => addAngle(angle)}
               className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors flex items-center gap-2">
-              <span className="w-3 h-3 rounded border border-border flex-shrink-0" />
+              <span className="w-3 h-3 rounded-md border border-border flex-shrink-0" />
               {angle}
             </button>
           ))}
@@ -381,7 +381,7 @@ function CopyBankPicker({ entries, onPick, brief }: {
                     <div className="flex items-center gap-1 mt-1 flex-wrap">
                       {e.winner && <Star className="w-3 h-3 fill-primary text-primary" />}
                       {[e.angle, e.product].filter(Boolean).map((t) => (
-                        <span key={t} className="text-[11px] text-muted-foreground border border-border rounded px-1.5">{t}</span>
+                        <span key={t} className="text-[11px] text-muted-foreground border border-border rounded-md px-1.5">{t}</span>
                       ))}
                       {isMatch(e) && <span className="text-[11px] text-primary font-medium">For this brief</span>}
                     </div>
@@ -752,7 +752,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-5xl max-h-[92vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-5xl max-h-[92vh] bg-card border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-border">
           <h2 className="font-semibold">{editItem ? 'Edit Brief' : 'New Creative Brief'}</h2>
@@ -811,14 +811,14 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     {nameEdited && (
                       <button type="button" onClick={generateName}
                         title="Rebuild from naming convention" aria-label="Rebuild ad name"
-                        className="p-1 rounded text-muted-foreground hover:text-primary transition-colors flex-shrink-0">
+                        className="p-1 rounded-md text-muted-foreground hover:text-primary transition-colors flex-shrink-0">
                         <Wand2 className="w-3.5 h-3.5" />
                       </button>
                     )}
                     <button type="button"
                       onClick={() => { if (form.adName) navigator.clipboard.writeText(form.adName); }}
                       title="Copy ad name" aria-label="Copy ad name"
-                      className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+                      className="p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
                       <CopyIcon className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -876,7 +876,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                             placeholder={ph} className={GHOST} />
                           {form[key] ? (
                             <a href={form[key]} target="_blank" rel="noreferrer" title="Open" aria-label={`Open ${label}`}
-                              className="p-1 rounded text-muted-foreground hover:text-primary transition-colors">
+                              className="p-1 rounded-md text-muted-foreground hover:text-primary transition-colors">
                               <ExternalLink className="w-3.5 h-3.5" />
                             </a>
                           ) : <span className="w-[22px]" />}
@@ -901,7 +901,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                     <div className="flex flex-wrap gap-1 px-1 py-1">
                       {SIZE_OPTIONS.map((s) => (
                         <button type="button" key={s} onClick={() => toggleSize(s)}
-                          className={cn('text-[11px] px-1.5 py-0.5 rounded border transition-colors',
+                          className={cn('text-[11px] px-1.5 py-0.5 rounded-md border transition-colors',
                             selectedSizes.includes(s)
                               ? 'border-primary bg-primary/10 text-primary font-medium'
                               : 'border-border text-muted-foreground hover:border-primary/40')}>
@@ -1080,7 +1080,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
             {tab === 'launch' && (
               <>
                 <div className="bg-secondary/60 border border-border rounded-lg p-4">
-                  <p className="text-xs font-medium mb-1">Meta Launch Setup</p>
+                  <p className="text-xs font-medium mb-1">Meta launch setup</p>
                   <p className="text-xs text-muted-foreground">
                     Pick the existing campaign and ad set to launch this creative into. Budget, targeting, schedule and placements are owned by the ad set — we only create the ad (paused).
                   </p>
@@ -1090,7 +1090,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 </div>
 
                 {/* ── Destination: existing campaign + ad set ── */}
-                <p className="text-xs font-medium text-muted-foreground pt-1">Launch Into</p>
+                <p className="text-xs font-medium text-muted-foreground pt-1">Launch into</p>
                 {!metaConfigured ? (
                   <p className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-lg px-3 py-2.5">
                     Connect Meta in Settings → Integrations to load your campaigns and ad sets.
@@ -1181,7 +1181,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                           Cancel
                         </button>
                         <button type="button" onClick={duplicateAdSet} disabled={dupState === 'working'}
-                          className="flex-1 bg-primary text-white rounded-lg py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center justify-center gap-1.5">
+                          className="btn btn-primary btn-sm flex-1">
                           {dupState === 'working' ? (
                             <>
                               <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -1217,7 +1217,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 {/* ── Readiness checklist ── */}
                 <div className="bg-muted/50 border border-border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-medium">Launch Readiness</p>
+                    <p className="text-xs font-medium">Launch readiness</p>
                     <span className={cn('text-[11px] font-medium rounded-full px-2 py-0.5 border',
                       metaConfigured
                         ? 'bg-primary/5 border-primary/20 text-primary'
@@ -1253,7 +1253,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                       onClick={handlePush}
                       disabled={!launchReady || !metaConfigured || launchState === 'launching'}
                       title={!metaConfigured ? 'Connect Meta in your environment variables' : launchReady ? 'Create a paused ad on Meta' : 'Complete the checklist to enable'}
-                      className="w-full flex items-center justify-center gap-2 bg-primary text-white text-sm font-medium py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      className="btn btn-primary w-full">
                       {launchState === 'launching' ? (
                         <>
                           <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -1286,12 +1286,12 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
             <div className="px-6 py-4 flex items-center gap-3">
               {stepIndex > 0 ? (
                 <button type="button" onClick={() => setTab(STEPS[stepIndex - 1].id)}
-                  className="border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">
+                  className="btn btn-secondary">
                   Back
                 </button>
               ) : (
                 <button type="button" onClick={onClose}
-                  className="border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">
+                  className="btn btn-secondary">
                   Cancel
                 </button>
               )}
@@ -1302,7 +1302,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
                 className={cn(
                   'rounded-lg px-4 py-2 text-sm transition-colors',
                   stepIndex === STEPS.length - 1
-                    ? 'flex-1 bg-primary text-white font-medium hover:bg-primary/90'
+                    ? 'btn btn-primary flex-1'
                     : 'border border-border hover:bg-secondary',
                 )}>
                 {editItem ? 'Save Changes' : 'Save Brief'}
@@ -1310,7 +1310,7 @@ export function BriefDrawer({ open, onClose, roadmapId, editItem }: Props) {
 
               {stepIndex < STEPS.length - 1 && (
                 <button type="button" onClick={() => setTab(STEPS[stepIndex + 1].id)}
-                  className="flex items-center gap-1.5 bg-primary text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
+                  className="btn btn-primary">
                   Next: {STEPS[stepIndex + 1].label}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>

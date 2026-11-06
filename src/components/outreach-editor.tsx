@@ -220,14 +220,14 @@ export function OutreachEditor({ briefId, onClose }: { briefId: string; onClose:
           </button>
           <button onClick={() => setPanel('send')} disabled={missing.length > 0}
             title={missing.length ? `Add ${missing.join(', ')} first` : undefined}
-            className="flex items-center gap-1.5 h-9 pl-3.5 pr-4 rounded-full bg-primary text-white text-sm font-medium shadow-sm hover:bg-primary/90 disabled:opacity-40 transition-colors">
+            className="btn btn-primary">
             <Send className="w-4 h-4" /> {brief.sentAt ? 'Send again' : 'Send'}
           </button>
         </div>
 
         {panel === 'preview' && (
           <Overlay onClose={() => setPanel('none')} wide>
-            <div className="max-h-[85vh] overflow-y-auto p-6 bg-background rounded-2xl">
+            <div className="max-h-[85vh] overflow-y-auto p-6 bg-background rounded-xl">
               <p className="text-xs text-muted-foreground text-center mb-4">This is what {brief.recipientName?.split(' ')[0] || 'they'}&rsquo;ll see</p>
               <BriefDocument brief={publicView(brief)}>
                 <div className="px-8 py-6 bg-muted/50 border-t border-border">
@@ -469,7 +469,7 @@ function SendPanel({ brief, sender, onClose, onSent }: {
 
   return (
     <Overlay onClose={onClose}>
-      <div className="bg-card rounded-2xl shadow-xl border border-border">
+      <div className="bg-card rounded-xl shadow-xl border border-border">
         {state === 'sent' || state === 'handoff' ? (
           <div className="p-8 text-center">
             <div className="w-11 h-11 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
@@ -505,7 +505,7 @@ function SendPanel({ brief, sender, onClose, onSent }: {
             <div className="flex justify-end gap-2 px-6 pb-5">
               <button onClick={onClose} className={QUIET_BTN}>Cancel</button>
               <button onClick={send} disabled={!isEmail(to) || state === 'sending'}
-                className="flex items-center gap-1.5 h-9 pl-3.5 pr-4 rounded-full bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-40 transition-colors">
+                className="btn btn-primary">
                 {state === 'sending' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Send
               </button>
             </div>

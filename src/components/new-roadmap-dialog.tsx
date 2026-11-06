@@ -47,9 +47,9 @@ export function NewRoadmapDialog({ open, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-5 border-b border-border">
-          <h2 className="font-semibold">New Roadmap</h2>
+          <h2 className="font-semibold">New roadmap</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="w-4 h-4" />
           </button>
@@ -114,7 +114,7 @@ export function NewRoadmapDialog({ open, onClose }: Props) {
               Cancel
             </button>
             <button type="submit"
-              className="flex-1 bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
+              className="btn btn-primary flex-1">
               Create Roadmap
             </button>
           </div>

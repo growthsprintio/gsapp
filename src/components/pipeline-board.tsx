@@ -16,7 +16,7 @@ function StatusDropdown({ item, roadmapId }: { item: RoadmapItem; roadmapId: str
   return (
     <div className="relative">
       <button onClick={() => setOpen(!open)}
-        className={cn('flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded', cfg.bg, cfg.color)}>
+        className={cn('flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md', cfg.bg, cfg.color)}>
         {cfg.label}
         <ChevronDown className="w-3 h-3" />
       </button>
@@ -29,7 +29,7 @@ function StatusDropdown({ item, roadmapId }: { item: RoadmapItem; roadmapId: str
               return (
                 <button key={s} onClick={() => { updateItemStatus(roadmapId, item.id, s); setOpen(false); }}
                   className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-secondary transition-colors text-left">
-                  <span className={cn('px-2 py-0.5 rounded font-medium', c.bg, c.color)}>{c.label}</span>
+                  <span className={cn('px-2 py-0.5 rounded-md font-medium', c.bg, c.color)}>{c.label}</span>
                 </button>
               );
             })}
@@ -60,7 +60,7 @@ function ItemRow({ item, roadmapId, onEdit }: { item: RoadmapItem; roadmapId: st
 
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
         {item.adFormat && (
-          <span className="capitalize border border-border rounded px-1.5 py-0.5">{item.adFormat}</span>
+          <span className="capitalize border border-border rounded-md px-1.5 py-0.5">{item.adFormat}</span>
         )}
         {item.adSize && <span>{item.adSize}</span>}
         {item.dueDate && (
@@ -83,11 +83,11 @@ function ItemRow({ item, roadmapId, onEdit }: { item: RoadmapItem; roadmapId: st
 
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button onClick={() => onEdit(item)}
-          className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+          className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
           <Pencil className="w-3.5 h-3.5" />
         </button>
         <button onClick={() => deleteItem(roadmapId, item.id)}
-          className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors">
+          className="p-1.5 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>

@@ -191,7 +191,7 @@ export function MetaConnectionCard() {
             </>
           ) : workspaceId ? (
             <button onClick={connect} disabled={connecting}
-              className="flex items-center gap-1.5 bg-primary text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-60">
+              className="btn btn-primary btn-sm">
               {connecting ? (
                 <>
                   <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -259,7 +259,7 @@ export function MetaConnectionCard() {
                     : <><AlertCircle className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-[11px] text-muted-foreground">Pick both to enable launching</span></>}
                 </div>
                 <button onClick={savePick} disabled={saving || !pick.adAccountId || !pick.pageId}
-                  className="bg-primary text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40">
+                  className="btn btn-primary btn-sm">
                   {saving ? 'Saving…' : 'Save'}
                 </button>
               </div>

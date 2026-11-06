@@ -102,8 +102,8 @@ function WorkspacesContent() {
           </p>
         </div>
         <button onClick={() => setShowNew(!showNew)}
-          className="flex items-center gap-2 bg-primary text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-primary/90 transition-colors">
-          <Plus className="w-4 h-4" /> New Workspace
+          className="btn btn-primary">
+          <Plus className="w-4 h-4" /> New workspace
         </button>
       </div>
 
@@ -121,8 +121,8 @@ function WorkspacesContent() {
       )}
 
       {showNew && (
-        <form onSubmit={create} className="bg-card border border-border rounded-2xl p-6 space-y-5 mb-6">
-          <h3 className="font-semibold text-base">New Workspace</h3>
+        <form onSubmit={create} className="bg-card border border-border rounded-xl p-6 space-y-5 mb-6">
+          <h3 className="font-semibold text-base">New workspace</h3>
 
           <div>
             <label className="text-xs font-medium block mb-1.5">Workspace Name *</label>
@@ -177,7 +177,7 @@ function WorkspacesContent() {
               <X className="w-3.5 h-3.5" /> Cancel
             </button>
             <button type="submit" disabled={busy || !form.name.trim()}
-              className="flex-1 bg-primary text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center justify-center gap-1.5">
+              className="btn btn-primary flex-1">
               <Check className="w-3.5 h-3.5" /> {busy ? 'Creating…' : 'Create Workspace'}
             </button>
           </div>
@@ -186,10 +186,10 @@ function WorkspacesContent() {
 
       {loading ? (
         <div className="grid grid-cols-2 gap-4">
-          {[0, 1].map((i) => <div key={i} className="bg-secondary/50 border border-border rounded-2xl h-40 animate-pulse" />)}
+          {[0, 1].map((i) => <div key={i} className="bg-secondary/50 border border-border rounded-xl h-40 animate-pulse" />)}
         </div>
       ) : workspaces.length === 0 ? (
-        <div className="text-center py-20 border border-dashed border-border rounded-2xl">
+        <div className="text-center py-20 border border-dashed border-border rounded-xl">
           <Building2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm font-medium mb-1">No workspaces yet</p>
           <button onClick={() => setShowNew(true)} className="text-sm text-primary hover:underline">Create one</button>
@@ -201,7 +201,7 @@ function WorkspacesContent() {
             const TypeIcon = cfg.icon;
             const initials = ws.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
             return (
-              <div key={ws.id} className="bg-card border border-border rounded-2xl p-5">
+              <div key={ws.id} className="bg-card border border-border rounded-xl p-5">
                 <div className="flex items-start justify-between gap-3 mb-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold flex-shrink-0">

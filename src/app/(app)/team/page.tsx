@@ -131,14 +131,14 @@ export default function TeamPage() {
 
   return (
     <div className="px-8 py-8 max-w-3xl">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-start justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-2xl font-semibold">Team</h1>
+          <h1 className="text-[26px] leading-tight font-semibold">Team</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Who&rsquo;s on the team, what they do, and what they can access. Job roles decide who briefs are routed to.</p>
         </div>
         <button onClick={() => setShowInvite(!showInvite)}
-          className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium pl-3.5 pr-4 h-9 rounded-full shadow-sm whitespace-nowrap flex-shrink-0 hover:bg-primary/90 transition-colors">
-          <Plus className="w-4 h-4" /> Add Member
+          className="btn btn-primary flex-shrink-0">
+          <Plus className="w-4 h-4" /> Add member
         </button>
       </div>
 
@@ -203,11 +203,11 @@ export default function TeamPage() {
           )}
           <div className="flex gap-3">
             <button type="button" onClick={() => { setShowInvite(false); setError(''); setInviteLink(''); }}
-              className="border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">
+              className="btn btn-secondary">
               {inviteLink ? 'Done' : 'Cancel'}
             </button>
             <button type="submit" disabled={busy}
-              className="bg-primary text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40">
+              className="btn btn-primary">
               {busy ? 'Inviting…' : 'Send invite'}
             </button>
           </div>
@@ -231,11 +231,11 @@ export default function TeamPage() {
                   </p>
                 </div>
                 <button onClick={() => copy(inv.link, inv.id)}
-                  className="flex items-center gap-1.5 text-[11px] border border-border rounded-lg px-2.5 py-1.5 hover:bg-secondary transition-colors">
+                  className="btn btn-secondary btn-sm">
                   {copied === inv.id ? <><Check className="w-3 h-3 text-primary" /> Copied</> : <><Copy className="w-3 h-3" /> Copy link</>}
                 </button>
                 <button onClick={() => revokeInvite(inv.id)} title="Revoke invite"
-                  className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
+                  className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -320,7 +320,7 @@ export default function TeamPage() {
                   </label>
 
                   <button onClick={() => removeMember(member.userId)} title="Remove from workspace" aria-label="Remove from workspace"
-                    className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 self-end">
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 self-end">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>

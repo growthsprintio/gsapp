@@ -53,7 +53,7 @@ function Usage({ used, live }: { used: number; live: number }) {
 }
 
 function Chip({ children }: { children: React.ReactNode }) {
-  return <span className="inline-flex items-center text-[11px] bg-secondary border border-border rounded px-1.5 py-0.5 max-w-[160px] truncate">{children}</span>;
+  return <span className="inline-flex items-center text-[11px] bg-secondary border border-border rounded-md px-1.5 py-0.5 max-w-[160px] truncate">{children}</span>;
 }
 
 /* ─────────────────────────────── quick add ─────────────────────────────── */
@@ -151,7 +151,7 @@ function QuickAdd({ angles, products, initialType }: {
           {multiline ? 'Ctrl + Enter' : 'Enter'} to add
         </span>
         <button type="button" onClick={add} disabled={!canAdd}
-          className="flex items-center gap-1.5 bg-primary text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40">
+          className="btn btn-primary btn-sm">
           <Plus className="w-3.5 h-3.5" />
           {many ? `Add ${lines.length || ''} ${TYPE_PLURAL[type].toLowerCase()}`.replace('  ', ' ') : 'Add'}
         </button>
@@ -214,9 +214,9 @@ function CopyLine({ entry, usage, angles, products, onDelete, compact = false }:
           <Counter type={entry.type} n={draft.content.trim().length} />
           <div className="flex-1" />
           <button type="button" onClick={() => setEditing(false)}
-            className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-secondary transition-colors">Cancel</button>
+            className="btn btn-secondary btn-sm">Cancel</button>
           <button type="button" onClick={save}
-            className="text-xs px-3 py-1.5 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors">Save</button>
+            className="btn btn-primary btn-sm">Save</button>
         </div>
       </div>
     );
@@ -320,7 +320,7 @@ function StrategyBank({ type, entries, items, copyLines, query, onDelete }: {
             placeholder="https://…" className={cn(INPUT, 'flex-1 min-w-[200px]')} />
         )}
         <button type="button" onClick={add} disabled={!name.trim()}
-          className="flex items-center gap-1.5 bg-primary text-white text-xs font-medium px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40">
+          className="btn btn-primary btn-sm">
           <Plus className="w-3.5 h-3.5" /> Add {TYPE_LABEL[type].toLowerCase()}
         </button>
       </div>
@@ -347,10 +347,10 @@ function StrategyBank({ type, entries, items, copyLines, query, onDelete }: {
                       placeholder="https://…" className={cn(INPUT, 'flex-1 min-w-[180px]')} />
                   )}
                   <button type="button" onClick={() => setEditId(null)}
-                    className="text-xs px-3 py-2 rounded-lg border border-border hover:bg-secondary">Cancel</button>
+                    className="btn btn-secondary btn-sm">Cancel</button>
                   <button type="button"
                     onClick={() => { if (draft.content.trim()) { updateCopyEntry(e.id, { content: draft.content.trim(), url: draft.url.trim() || undefined }); setEditId(null); } }}
-                    className="text-xs px-3 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90">Save</button>
+                    className="btn btn-primary btn-sm">Save</button>
                 </div>
               );
             }

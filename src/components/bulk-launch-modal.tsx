@@ -86,7 +86,7 @@ export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-2xl max-h-[90vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-2xl max-h-[90vh] bg-card border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden">
         <div className="flex items-start justify-between px-6 py-5 border-b border-border">
           <div>
             <h2 className="font-semibold flex items-center gap-2">
@@ -219,7 +219,7 @@ export function BulkLaunchModal({ open, onClose, items, onLaunched }: {
           {state !== 'done' && (
             <button onClick={launch}
               disabled={!adSetId || ready.length === 0 || state === 'launching'}
-              className="flex-1 bg-primary text-white rounded-lg py-2 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
+              className="btn btn-primary flex-1">
               {state === 'launching' ? (
                 <>
                   <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />

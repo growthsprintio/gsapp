@@ -56,15 +56,15 @@ function CreativeTile({ entry }: { entry: CreativeBankEntry }) {
         )}
         <div className="flex items-center gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
           <a href={entry.url} target="_blank" rel="noreferrer" title="Open link"
-            className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+            className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
           <button onClick={copy} title="Copy link"
-            className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+            className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
             {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
           <button onClick={() => deleteCreativeEntry(entry.id)} title="Remove"
-            className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors ml-auto">
+            className="p-1.5 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors ml-auto">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -89,15 +89,15 @@ function CreativeRow({ entry }: { entry: CreativeBankEntry }) {
       </span>
       <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <a href={entry.url} target="_blank" rel="noreferrer" title="Open link"
-          className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+          className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
         <button onClick={copy} title="Copy link"
-          className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+          className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
           {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
         </button>
         <button onClick={() => deleteCreativeEntry(entry.id)} title="Remove"
-          className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors">
+          className="p-1.5 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -134,14 +134,14 @@ function LibraryTab() {
           Finished ads and reference assets. Upload files or link to Drive, Frame.io or a CDN.
         </p>
         <button onClick={() => setShowNew(!showNew)}
-          className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium pl-3.5 pr-4 h-9 rounded-full shadow-sm hover:bg-primary/90 transition-colors flex-shrink-0">
+          className="btn btn-primary flex-shrink-0">
           <Plus className="w-4 h-4" /> Add creative
         </button>
       </div>
 
       {showNew && (
         <form onSubmit={handleAdd} className="bg-card border border-border rounded-xl p-5 mb-6 space-y-4">
-          <h3 className="text-sm font-semibold">Add Creative by Link</h3>
+          <h3 className="text-sm font-semibold">Add creative</h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium block mb-1.5">Title *</label>
@@ -178,9 +178,9 @@ function LibraryTab() {
           </div>
           <div className="flex gap-3">
             <button type="button" onClick={() => setShowNew(false)}
-              className="border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">Cancel</button>
+              className="btn btn-secondary">Cancel</button>
             <button type="submit"
-              className="bg-primary text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">Add Creative</button>
+              className="btn btn-primary">Add creative</button>
           </div>
         </form>
       )}
@@ -216,11 +216,11 @@ function LibraryTab() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-20 border border-dashed border-border rounded-2xl">
+        <div className="text-center py-20 border border-dashed border-border rounded-xl">
           <Clapperboard className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm font-medium mb-1">No creatives yet</p>
-          <p className="text-xs text-muted-foreground mb-4">Add your first creative by pasting a link.</p>
-          <button onClick={() => setShowNew(true)} className="text-sm text-primary hover:underline">Add by Link</button>
+          <p className="text-xs text-muted-foreground mb-4">Upload a file or paste a link to add your first creative.</p>
+          <button onClick={() => setShowNew(true)} className="text-sm text-primary hover:underline">Add creative</button>
         </div>
       ) : view === 'tiles' ? (
         <div className="grid grid-cols-3 gap-4">

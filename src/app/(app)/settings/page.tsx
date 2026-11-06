@@ -58,7 +58,7 @@ function WorkflowsPanel() {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Workflow rules</h3>
         <button onClick={() => setShowNew(!showNew)}
-          className="flex items-center gap-1.5 text-xs font-medium bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors">
+          className="btn btn-primary btn-sm">
           <Plus className="w-3.5 h-3.5" /> New rule
         </button>
       </div>
@@ -97,9 +97,9 @@ function WorkflowsPanel() {
           </div>
           <div className="flex gap-3">
             <button type="button" onClick={() => setShowNew(false)}
-              className="border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">Cancel</button>
+              className="btn btn-secondary">Cancel</button>
             <button type="submit"
-              className="bg-primary text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">Create rule</button>
+              className="btn btn-primary">Create rule</button>
           </div>
         </form>
       )}
@@ -128,7 +128,7 @@ function WorkflowsPanel() {
               <div className="w-9 h-5 bg-border rounded-full peer peer-checked:bg-primary transition-colors peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition-transform" />
             </label>
             <button onClick={() => setRules((rs) => rs.filter((r) => r.id !== rule.id))}
-              className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
+              className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -169,7 +169,7 @@ export default function SettingsPage() {
           <nav className="space-y-0.5">
             {TABS.map(({ id, label, icon: Icon }) => (
               <button key={id} onClick={() => setTab(id)}
-                className={`flex items-center gap-2.5 w-full text-left px-3 py-2 rounded text-sm transition-colors ${
+                className={`flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
                   tab === id ? 'bg-secondary text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}>
                 <Icon className="w-4 h-4" />
@@ -199,7 +199,7 @@ export default function SettingsPage() {
               </div>
 
               <button onClick={handleSave}
-                className="flex items-center gap-2 bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                className="btn btn-primary">
                 <Save className="w-4 h-4" />
                 {saved ? 'Saved!' : 'Save Changes'}
               </button>

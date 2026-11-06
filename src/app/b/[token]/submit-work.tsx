@@ -59,7 +59,7 @@ export function SubmitWork({ token, alreadySent }: { token: string; alreadySent:
             {count > 0 ? `${count} link${count === 1 ? '' : 's'} sent so far` : ''}
           </span>
           <button type="submit" disabled={state === 'sending' || !url.trim()}
-            className="flex items-center gap-2 h-10 px-5 rounded-full bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
+            className="btn btn-primary">
             {state === 'sending' && <Loader2 className="w-4 h-4 animate-spin" />}
             Send work
           </button>

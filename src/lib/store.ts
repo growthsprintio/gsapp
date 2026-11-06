@@ -139,10 +139,8 @@ export const useAppStore = create<AppState>()(
       },
 
       /**
-       * Copy a creative so the same asset and copy can go into another
-       * campaign or ad set. Meta links are cleared — the copy is a new ad that
-       * hasn't been pushed — and a launched source comes back as approved,
-       * since the copy itself isn't live.
+       * A 1:1 copy of a creative, placed directly under the original. See
+       * buildDuplicateFields for the little that doesn't carry over.
        */
       duplicateItem: (roadmapId, itemId) => {
         const roadmap = get().roadmaps.find((r) => r.id === roadmapId);
@@ -156,7 +154,6 @@ export const useAppStore = create<AppState>()(
           ...source,
           ...buildDuplicateFields(source, get().namingConvention, {
             brand: get().currentAccount()?.name?.slice(0, 3) || 'BRD',
-            index: Math.floor(Math.random() * 999) + 1,
           }),
           id,
           roadmapId,
@@ -166,7 +163,9 @@ export const useAppStore = create<AppState>()(
 
         set((s) => ({
           roadmaps: s.roadmaps.map((r) =>
-            r.id === roadmapId ? { ...r, items: [...r.items, copy] } : r
+            r.id === roadmapId
+              ? { ...r, items: r.items.flatMap((i) => (i.id === itemId ? [i, copy] : [i])) }
+              : r
           ),
         }));
         return id;

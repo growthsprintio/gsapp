@@ -47,13 +47,13 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center px-6 bg-background">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2 justify-center mb-8">
-          <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
+          <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
             <Zap className="w-4 h-4 text-white fill-white" />
           </div>
           <span className="font-semibold text-lg tracking-tight">GrowthSprint</span>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <KeyRound className="w-4 h-4 text-muted-foreground" />
             <h1 className="text-sm font-semibold">Choose a new password</h1>
@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
                 This reset link is invalid or has expired. Request a new one from the sign-in page.
               </p>
               <Link href="/login"
-                className="block text-center bg-primary text-white rounded-lg py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors">
+                className="btn btn-primary">
                 Back to sign in
               </Link>
             </>
@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
                   </div>
                 )}
                 <button type="submit" disabled={loading}
-                  className="w-full bg-primary text-white rounded-lg py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40">
+                  className="btn btn-primary w-full">
                   {loading ? 'Saving…' : 'Set new password'}
                 </button>
               </form>

@@ -63,7 +63,7 @@ export function BriefsTab() {
         </p>
         <div className="relative flex-shrink-0">
           <button onClick={() => setChoosing((c) => !c)}
-            className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium pl-3.5 pr-4 h-9 rounded-full shadow-sm hover:bg-primary/90 transition-colors">
+            className="btn btn-primary">
             <Plus className="w-4 h-4" /> New brief
           </button>
           {choosing && <KindMenu onPick={create} onClose={() => setChoosing(false)} />}

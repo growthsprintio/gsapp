@@ -48,16 +48,22 @@ function RowThumb({ url }: { url?: string }) {
   );
 }
 
-function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
+function TableRow({ item, roadmapId, onEdit, selected, onToggle, flash, onDuplicate }: {
   item: RoadmapItem; roadmapId: string;
   onEdit: (i: RoadmapItem) => void;
   selected: boolean;
   onToggle: (id: string) => void;
+  /** Just created by Duplicate: briefly marked so the copy is easy to spot. */
+  flash: boolean;
+  onDuplicate: (id: string) => void;
 }) {
   const updateItemStatus = useAppStore((s) => s.updateItemStatus);
   const deleteItem = useAppStore((s) => s.deleteItem);
-  const duplicateItem = useAppStore((s) => s.duplicateItem);
   const [menu, setMenu] = useState(false);
+  const rowRef = useRef<HTMLTableRowElement>(null);
+  useEffect(() => {
+    if (flash) rowRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [flash]);
   const [copied, setCopied] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
@@ -93,11 +99,11 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
-    <tr onClick={() => onEdit(item)}
+    <tr ref={rowRef} onClick={() => onEdit(item)}
       title="Open brief"
       className={cn(
         'border-b border-border transition-colors group cursor-pointer',
-        selected ? 'bg-primary/5' : 'hover:bg-muted/40'
+        flash ? 'bg-primary/10' : selected ? 'bg-primary/5' : 'hover:bg-muted/40'
       )}>
       <td className="pl-4 pr-1 py-3" onClick={stop}>
         <button onClick={() => onToggle(item.id)}
@@ -124,7 +130,7 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
                   title="Copy ad name"
                   aria-label="Copy ad name"
                   className={cn(
-                    'p-0.5 rounded transition-all flex-shrink-0',
+                    'p-0.5 rounded-md transition-all flex-shrink-0',
                     copied
                       ? 'text-primary opacity-100'
                       : 'text-muted-foreground/60 hover:text-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
@@ -212,7 +218,7 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
         {item.status === 'ready_to_launch' ? (
           <button
             onClick={() => updateItemStatus(roadmapId, item.id, 'launched')}
-            className="flex items-center gap-1.5 text-xs font-medium bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors">
+            className="btn btn-primary btn-sm">
             <Zap className="w-3 h-3" /> Launch
           </button>
         ) : item.metaAdId ? (
@@ -226,17 +232,17 @@ function TableRow({ item, roadmapId, onEdit, selected, onToggle }: {
       <td className="px-4 py-3" onClick={stop}>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={() => onEdit(item)} title="Edit brief" aria-label="Edit brief"
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+            className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
             <Pencil className="w-3.5 h-3.5" />
           </button>
-          {/* Same creative into another campaign — copy rather than rebuild */}
-          <button onClick={() => duplicateItem(roadmapId, item.id)}
-            title="Duplicate for another campaign" aria-label="Duplicate for another campaign"
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+          {/* 1:1 copy, placed directly under this row */}
+          <button onClick={() => onDuplicate(item.id)}
+            title="Duplicate" aria-label="Duplicate"
+            className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
             <CopyIcon className="w-3.5 h-3.5" />
           </button>
           <button onClick={() => deleteItem(roadmapId, item.id)}
-            className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors">
+            className="p-1 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -265,6 +271,12 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
   const [filterAngle, setFilterAngle] = useState('all');
   // Bulk selection — the core of managing ads at scale.
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [flashIds, setFlashIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (flashIds.length === 0) return;
+    const t = setTimeout(() => setFlashIds([]), 2000);
+    return () => clearTimeout(t);
+  }, [flashIds]);
   const [bulkLaunchOpen, setBulkLaunchOpen] = useState(false);
   const deleteItem = useAppStore((s) => s.deleteItem);
   const duplicateItem = useAppStore((s) => s.duplicateItem);
@@ -294,9 +306,10 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
   };
   /** Copy a whole selection so a batch can go into a second campaign. */
   const bulkDuplicate = () => {
-    selectedIds.forEach((id) => duplicateItem(roadmap.id, id));
+    setFlashIds(selectedIds.map((id) => duplicateItem(roadmap.id, id)));
     clearSelection();
   };
+  const duplicateOne = (id: string) => setFlashIds([duplicateItem(roadmap.id, id)]);
 
   // Multi-select fields are stored comma-joined, so match on membership.
   const has = (field: string | undefined, value: string) =>
@@ -362,7 +375,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
             </p>
           </div>
           <button onClick={openNew}
-            className="flex items-center gap-1.5 bg-primary text-white font-medium text-sm pl-3.5 pr-4 h-9 rounded-full shadow-sm hover:bg-primary/90 hover:shadow transition-all flex-shrink-0">
+            className="btn btn-primary flex-shrink-0">
             <Plus className="w-4 h-4" /> New creative
           </button>
         </div>
@@ -465,7 +478,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
                       </tr>
                     )}
                     {activeItems.map((item) => (
-                      <TableRow key={item.id} item={item} roadmapId={roadmap.id} onEdit={openEdit} selected={selectedIds.includes(item.id)} onToggle={toggleSelect} />
+                      <TableRow key={item.id} item={item} roadmapId={roadmap.id} onEdit={openEdit} selected={selectedIds.includes(item.id)} onToggle={toggleSelect} flash={flashIds.includes(item.id)} onDuplicate={duplicateOne} />
                     ))}
                     {inactiveItems.length > 0 && (
                       <tr className="bg-secondary/60">
@@ -475,7 +488,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
                       </tr>
                     )}
                     {inactiveItems.map((item) => (
-                      <TableRow key={item.id} item={item} roadmapId={roadmap.id} onEdit={openEdit} selected={selectedIds.includes(item.id)} onToggle={toggleSelect} />
+                      <TableRow key={item.id} item={item} roadmapId={roadmap.id} onEdit={openEdit} selected={selectedIds.includes(item.id)} onToggle={toggleSelect} flash={flashIds.includes(item.id)} onDuplicate={duplicateOne} />
                     ))}
                   </>
                 )}
@@ -488,7 +501,7 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
       {/* Bulk action bar — the scale workflow: select many, act once */}
       {selectedIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
-          <div className="flex items-center gap-2 bg-foreground text-background rounded-2xl shadow-2xl px-3 py-2.5">
+          <div className="flex items-center gap-2 bg-foreground text-background rounded-xl shadow-2xl px-3 py-2.5">
             <span className="text-xs font-semibold px-2 whitespace-nowrap">
               {selectedIds.length} selected
             </span>
@@ -517,13 +530,13 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ id: st
               onClick={() => setBulkLaunchOpen(true)}
               disabled={launchableCount === 0}
               title={launchableCount === 0 ? 'Only approved creatives can launch' : 'Launch selected into an ad set'}
-              className="flex items-center gap-1.5 text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+              className="btn btn-primary btn-sm">
               <Zap className="w-3.5 h-3.5" />
               Launch{launchableCount > 0 ? ` ${launchableCount}` : ''}
             </button>
 
-            <button onClick={bulkDuplicate} title="Duplicate selected for another campaign"
-              aria-label="Duplicate selected for another campaign"
+            <button onClick={bulkDuplicate} title="Duplicate selected"
+              aria-label="Duplicate selected"
               className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg hover:bg-background/10 transition-colors">
               <CopyIcon className="w-3.5 h-3.5" />
               Duplicate

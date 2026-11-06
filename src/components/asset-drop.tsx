@@ -100,7 +100,7 @@ export function CreativeInput({ value, onChange, multiple = false, className }: 
           {urls.map((url) => (
             <div key={url} className="flex items-center gap-2 border border-border rounded-lg p-1.5 bg-muted/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="w-9 h-9 rounded object-cover bg-secondary flex-shrink-0"
+              <img src={url} alt="" className="w-9 h-9 rounded-md object-cover bg-secondary flex-shrink-0"
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-medium text-primary">Hosted by GrowthSprint</p>

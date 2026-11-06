@@ -20,7 +20,7 @@ export function BriefDocument({ brief, children }: { brief: PublicBrief; childre
   const donts = lines(brief.donts);
 
   return (
-    <article className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+    <article className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
       <header className="px-8 pt-8 pb-6 border-b border-border">
         <p className="text-xs font-medium text-primary">{KIND_LABEL[brief.kind]}</p>
         <h1 className="text-[28px] leading-tight font-semibold mt-1">{brief.title || 'Untitled brief'}</h1>

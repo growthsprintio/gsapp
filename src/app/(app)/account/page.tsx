@@ -120,7 +120,7 @@ export default function AccountPage() {
           )}
 
           <button type="submit" disabled={pwState === 'saving' || !pw.next || !pw.confirm}
-            className="bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40">
+            className="btn btn-primary">
             {pwState === 'saving' ? 'Updating…' : 'Update password'}
           </button>
         </form>
@@ -160,7 +160,7 @@ export default function AccountPage() {
         <h3 className="text-sm font-semibold mb-1">Session</h3>
         <p className="text-xs text-muted-foreground mb-4">Sign out of GrowthSprint on this device.</p>
         <button onClick={signOut}
-          className="flex items-center gap-2 border border-border rounded-lg px-4 py-2 text-sm hover:bg-secondary transition-colors">
+          className="btn btn-secondary">
           <LogOut className="w-4 h-4" /> Sign out
         </button>
       </div>

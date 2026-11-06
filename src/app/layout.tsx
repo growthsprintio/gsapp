@@ -6,7 +6,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "GrowthSprint — Creative Operations",
-  description: "The operating system for performance creative teams.",
+  description: "From creative brief to Meta launch, for performance teams.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

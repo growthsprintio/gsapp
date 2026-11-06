@@ -177,33 +177,33 @@ export function applyNamingConvention(
 }
 
 /**
- * The content of a duplicated creative, so the same asset and copy can go into
- * another campaign or ad set.
+ * What differs on a duplicated creative. A duplicate is a 1:1 copy: same name,
+ * asset, copy, owners and launch setup, including the campaign and ad set.
+ * Only the facts about the original's own launch don't carry over.
  *
  * Pure so it can be tested on its own; the store supplies ids and timestamps.
  */
 export function buildDuplicateFields(
   source: RoadmapItem,
   convention: NamingConvention,
-  extra?: { brand?: string; index?: number },
+  extra?: { brand?: string },
 ): Partial<RoadmapItem> {
+  // Opening a brief rebuilds an automatic name from the convention. Where that
+  // wouldn't reproduce this exact name (the convention changed, or the brief
+  // predates saved numbers), pin it so the copy keeps the name it was given.
+  const rebuildsSame = source.nameIndex != null && applyNamingConvention(convention, source, {
+    brand: extra?.brand,
+    index: source.nameIndex,
+    customValues: source.variables,
+  }) === source.adName;
+
   return {
-    // The copy has not been pushed, and is attached to nothing.
+    // The copy has not been pushed, so it isn't that ad.
     metaAdId: undefined,
-    metaCampaignId: undefined,
-    metaAdSetId: undefined,
     launchedAt: undefined,
     // Copying a live ad gives you an approved draft, not a second live ad.
     status: source.status === 'launched' ? 'ready_to_launch' : source.status,
-    // Two ads sharing a name are indistinguishable in Meta's ad-level
-    // reporting, so rebuild it from the convention with a fresh index.
-    adName: source.adName
-      ? applyNamingConvention(convention, source, {
-        brand: extra?.brand,
-        index: extra?.index ?? 1,
-        customValues: source.variables,
-      }) || `${source.adName} copy`
-      : '',
+    adNameCustom: source.adNameCustom || (!!source.adName && !rebuildsSame),
   };
 }
 

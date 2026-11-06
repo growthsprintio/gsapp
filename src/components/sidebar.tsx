@@ -180,7 +180,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="px-5 py-4 border-b border-border">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded bg-primary flex items-center justify-center">
+          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
             <Zap className="w-4 h-4 text-white fill-white" />
           </div>
           <span className="font-semibold text-sm tracking-tight">GrowthSprint</span>
@@ -210,7 +210,7 @@ export function Sidebar() {
                 </Link>
                 {isRoadmaps && activeRoadmaps.length > 0 ? (
                   <button onClick={() => setRoadmapsOpen(!roadmapsOpen)}
-                    className="p-1.5 mr-1 rounded hover:bg-background/60 transition-colors"
+                    className="p-1.5 mr-1 rounded-md hover:bg-background/60 transition-colors"
                     title={roadmapsOpen ? 'Collapse' : 'Expand'}>
                     <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', !roadmapsOpen && '-rotate-90')} />
                   </button>

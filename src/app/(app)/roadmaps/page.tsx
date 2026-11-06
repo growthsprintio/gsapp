@@ -38,7 +38,7 @@ function RoadmapCard({ roadmap, isAgency }: { roadmap: Roadmap; isAgency?: boole
     : roadmap.period || roadmap.type.charAt(0).toUpperCase() + roadmap.type.slice(1);
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4 hover:border-primary/20 transition-colors">
+    <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 hover:border-primary/20 transition-colors">
       {/* Tag pill */}
       <div className="flex justify-center">
         <span className="bg-orange-50 text-primary text-xs font-medium px-4 py-1 rounded-full border border-orange-100 capitalize">
@@ -74,7 +74,7 @@ function RoadmapCard({ roadmap, isAgency }: { roadmap: Roadmap; isAgency?: boole
             const isLive = key === 'launched';
             return (
               <div key={key}
-                title={`${count} creative in ${label}`}
+                title={`${count} creative${count !== 1 ? 's' : ''} in ${label}`}
                 className={cn(
                   'flex-1 rounded-lg flex flex-col items-center justify-center py-2 gap-0.5 border',
                   isLive && count > 0
@@ -106,7 +106,7 @@ function RoadmapCard({ roadmap, isAgency }: { roadmap: Roadmap; isAgency?: boole
 
       {/* Single full-width action */}
       <Link href={`/roadmaps/${roadmap.id}`}
-        className="flex items-center justify-center gap-1.5 bg-primary text-white text-xs font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-colors">
+        className="btn btn-primary btn-sm">
         Open roadmap →
       </Link>
     </div>
@@ -135,25 +135,22 @@ export default function RoadmapsPage() {
 
   const STATS = [
     {
-      label: 'Active Roadmaps',
+      label: 'Active roadmaps',
       value: active.length,
       sub: isAgency ? `Across ${clientCount} client${clientCount !== 1 ? 's' : ''}` : 'In this workspace',
     },
-    { label: 'Creative In Progress', value: inFlight, sub: 'Idea → Review' },
-    { label: 'Approved This Week', value: approved, sub: 'Ready to launch' },
+    { label: 'Creatives in progress', value: inFlight, sub: 'Idea → Review' },
+    { label: 'Approved this week', value: approved, sub: 'Ready to launch' },
     { label: 'Launched', value: launched, sub: 'Last 7 days' },
   ];
 
   return (
     <div className="px-8 py-8 max-w-6xl">
       {/* Hero */}
-      <div className="bg-card border border-border rounded-2xl p-8 mb-6 relative overflow-hidden">
+      <div className="bg-card border border-border rounded-xl p-8 mb-6 relative overflow-hidden">
         <div className="flex items-start justify-between">
           <div>
-            <div className="inline-flex items-center bg-orange-50 border border-orange-100 rounded-full px-4 py-1 mb-4">
-              <span className="text-xs font-medium text-primary">Creative Command Center</span>
-            </div>
-            <h1 className="text-4xl font-bold mb-3">{currentAccount?.name ?? 'Your Roadmaps'}</h1>
+            <h1 className="text-[26px] leading-tight font-semibold mb-2">{currentAccount?.name ?? 'Your roadmaps'}</h1>
             <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
               {isAgency
                 ? 'Every client and campaign gets its own self-contained creative roadmap — pipeline, briefs, approvals, and Meta launches in one workspace.'
@@ -161,8 +158,8 @@ export default function RoadmapsPage() {
             </p>
           </div>
           <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 bg-primary text-white font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-colors flex-shrink-0">
-            <Plus className="w-4 h-4" /> New Roadmap
+            className="btn btn-primary flex-shrink-0">
+            <Plus className="w-4 h-4" /> New roadmap
           </button>
         </div>
       </div>
@@ -181,7 +178,7 @@ export default function RoadmapsPage() {
       {/* All Roadmaps header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold">All Roadmaps</h2>
+          <h2 className="text-2xl font-bold">All roadmaps</h2>
           <span className="text-xs font-medium bg-secondary border border-border text-muted-foreground px-2.5 py-1 rounded-full">
             {active.length} active
           </span>
@@ -191,7 +188,7 @@ export default function RoadmapsPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search Roadmaps"
+            placeholder="Search roadmaps"
             className="bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm pl-9 pr-4 py-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary/30 w-52"
           />
         </div>
@@ -199,7 +196,7 @@ export default function RoadmapsPage() {
 
       {/* Cards grid */}
       {filtered.length === 0 ? (
-        <div className="text-center py-20 border border-dashed border-border rounded-2xl">
+        <div className="text-center py-20 border border-dashed border-border rounded-xl">
           <p className="text-sm text-muted-foreground mb-2">
             {search ? 'No roadmaps match your search.' : 'No active roadmaps yet.'}
           </p>

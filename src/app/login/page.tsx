@@ -76,13 +76,13 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center px-6 bg-background">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2 justify-center mb-8">
-          <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
+          <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
             <Zap className="w-4 h-4 text-white fill-white" />
           </div>
           <span className="font-semibold text-lg tracking-tight">GrowthSprint</span>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <Lock className="w-4 h-4 text-muted-foreground" />
             <h1 className="text-sm font-semibold">Sign in</h1>
@@ -107,7 +107,7 @@ function LoginForm() {
             {error && <p className="text-xs text-red-600">{error}</p>}
             {notice && <p className="text-xs text-primary">{notice}</p>}
             <button type="submit" disabled={loading || !password}
-              className="w-full bg-primary text-white rounded-lg py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+              className="btn btn-primary w-full">
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>

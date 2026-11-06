@@ -61,8 +61,8 @@ export default function DashboardPage() {
     .slice(0, 3);
 
   const STATS = [
-    { label: 'Active Roadmaps', value: activeRoadmaps.length, sub: `${roadmaps.length} total` },
-    { label: 'Creative In Progress', value: inProgress, sub: 'Idea → Review' },
+    { label: 'Active roadmaps', value: activeRoadmaps.length, sub: `${roadmaps.length} total` },
+    { label: 'Creatives in progress', value: inProgress, sub: 'Idea → Review' },
     { label: 'Launched · L7D', value: launchedL7, sub: 'Last 7 days' },
     { label: 'Launched · MTD', value: launchedMTD, sub: 'Month to date' },
   ];
@@ -76,7 +76,7 @@ export default function DashboardPage() {
           {greeting}{firstName ? `, ${firstName}` : ''}
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          {activeRoadmaps.length} active roadmap{activeRoadmaps.length !== 1 ? 's' : ''} · {inProgress} creative in progress
+          {activeRoadmaps.length} active roadmap{activeRoadmaps.length !== 1 ? 's' : ''} · {inProgress} creative{inProgress !== 1 ? 's' : ''} in progress
         </p>
       </div>
 
@@ -99,7 +99,7 @@ export default function DashboardPage() {
           {/* Pipeline funnel */}
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold">Creative Pipeline — Idea to Launch</h2>
+              <h2 className="text-sm font-semibold">Creative pipeline, idea to launch</h2>
               <span className="text-xs text-muted-foreground">{launched30} launched · last 30 days</span>
             </div>
             <div className="space-y-2.5">
@@ -127,7 +127,7 @@ export default function DashboardPage() {
         <div className="xl:col-span-4">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold">Recent Roadmaps</h2>
+              <h2 className="text-sm font-semibold">Recent roadmaps</h2>
               <Link href="/roadmaps" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                 View all <ArrowRight className="w-3 h-3" />
               </Link>
@@ -142,7 +142,7 @@ export default function DashboardPage() {
                     className="flex items-center gap-4 bg-card border border-border rounded-lg px-4 py-3.5 hover:border-primary/40 transition-colors group">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{r.name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 capitalize">{r.type} · {items.length} creative</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 first-letter:uppercase">{r.type} · {items.length} creative{items.length !== 1 ? 's' : ''}</p>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       {rtl > 0 && (
@@ -171,7 +171,7 @@ export default function DashboardPage() {
           {/* Due Next */}
           <div>
             <h2 className="text-sm font-semibold mb-4 flex items-center gap-1.5">
-              <CalendarClock className="w-4 h-4 text-muted-foreground" /> Due Next
+              <CalendarClock className="w-4 h-4 text-muted-foreground" /> Due next
             </h2>
             {dueNext.length === 0 ? (
               <p className="text-xs text-muted-foreground">Nothing scheduled.</p>
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                       <ArrowRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                     </div>
                     <div className="flex items-center gap-1.5 mt-1">
-                      <span className={cn('text-[11px] font-medium px-1.5 py-0.5 rounded', STATUS_CONFIG[item.status].bg, STATUS_CONFIG[item.status].color)}>
+                      <span className={cn('text-[11px] font-medium px-1.5 py-0.5 rounded-md', STATUS_CONFIG[item.status].bg, STATUS_CONFIG[item.status].color)}>
                         {STATUS_CONFIG[item.status].label}
                       </span>
                       <span className="text-[11px] text-muted-foreground">Due {format(new Date(item.dueDate!), 'MMM d')}</span>
@@ -198,7 +198,7 @@ export default function DashboardPage() {
 
           {/* Recently Launched — thumbnails */}
           <div>
-            <h2 className="text-sm font-semibold mb-4">Recently Launched</h2>
+            <h2 className="text-sm font-semibold mb-4">Recently launched</h2>
             {recentlyLaunched.length === 0 ? (
               <p className="text-xs text-muted-foreground">No launches yet.</p>
             ) : (
