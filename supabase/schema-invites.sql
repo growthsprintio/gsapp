@@ -40,6 +40,7 @@ drop policy if exists "members read invites" on public.workspace_invites;
 create policy "members read invites" on public.workspace_invites
   for select using (public.is_member(workspace_id));
 
+-- No write policy on purpose. Only the server writes invites, and it checks the
+-- caller is an admin. A members-can-write policy would let any member use the
+-- public API key to invite themselves back in as an admin.
 drop policy if exists "members manage invites" on public.workspace_invites;
-create policy "members manage invites" on public.workspace_invites
-  for all using (public.is_member(workspace_id)) with check (public.is_member(workspace_id));
