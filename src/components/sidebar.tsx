@@ -32,7 +32,7 @@ function CreativesSubnav() {
   const waiting = useAppStore((s) => (s.outreach || []).filter((b) => b.status === 'submitted').length);
   const items = [
     { key: 'library', label: 'Library', href: '/creative-bank', on: tab !== 'briefs' },
-    { key: 'briefs', label: 'Briefs', href: '/creative-bank?tab=briefs', on: tab === 'briefs', badge: waiting },
+    { key: 'briefs', label: 'Creator briefs', href: '/creative-bank?tab=briefs', on: tab === 'briefs', badge: waiting },
   ];
   return (
     <div className="ml-4 pl-3 border-l border-border mt-0.5 mb-1 space-y-0.5">

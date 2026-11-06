@@ -10,11 +10,6 @@ export const KIND_LABEL: Record<OutreachKind, string> = {
   design: 'Design brief',
 };
 
-export const KIND_HINT: Record<OutreachKind, string> = {
-  creator: 'Influencers and UGC creators filming content',
-  design: 'Designers and editors making the asset',
-};
-
 export const OUTREACH_STATUS: Record<OutreachStatus, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-stone-100 text-stone-600' },
   sent: { label: 'Sent', className: 'bg-sky-50 text-sky-700' },

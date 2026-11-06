@@ -257,10 +257,10 @@ function Creatives() {
   return (
     <div className="px-8 pt-7 pb-10 max-w-6xl">
       <h1 className="text-[26px] leading-tight font-semibold">Creatives</h1>
-      <p className="text-sm text-muted-foreground mt-1">Your creative library, and the briefs you send to creators and designers.</p>
+      <p className="text-sm text-muted-foreground mt-1">Your creative library, and the briefs you send to creators.</p>
 
       <div className="flex items-center gap-6 border-b border-border mt-6 mb-6">
-        {([['library', 'Library', null], ['briefs', 'Briefs', briefCount]] as const).map(([key, label, count]) => (
+        {([['library', 'Library', null], ['briefs', 'Creator briefs', briefCount]] as const).map(([key, label, count]) => (
           <button key={key} onClick={() => choose(key)}
             className={cn('relative h-10 text-sm font-medium transition-colors',
               tab === key ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>

@@ -7,9 +7,9 @@ import {
 import { useAppStore } from '@/lib/store';
 import { useCurrentUser } from '@/lib/use-current-user';
 import { cn, nanoid } from '@/lib/utils';
-import { SIZE_OPTIONS, type OutreachBrief, type OutreachKind } from '@/lib/types';
+import { SIZE_OPTIONS, type OutreachBrief } from '@/lib/types';
 import {
-  KIND_LABEL, KIND_HINT, KIND_COPY, OUTREACH_STATUS, publicView, briefMissing, defaultMessage, isEmail,
+  KIND_LABEL, KIND_COPY, OUTREACH_STATUS, publicView, briefMissing, defaultMessage, isEmail,
 } from '@/lib/outreach';
 import { BriefDocument } from './brief-document';
 
@@ -90,15 +90,7 @@ export function OutreachEditor({ briefId, onClose }: { briefId: string; onClose:
       <div className="relative w-full max-w-[880px] h-full bg-background shadow-2xl flex flex-col">
         {/* ── Header ── */}
         <div className="flex items-center gap-3 px-6 h-14 border-b border-border bg-card flex-shrink-0">
-          <div className="flex items-center bg-muted rounded-full p-0.5">
-            {(['creator', 'design'] as OutreachKind[]).map((k) => (
-              <button key={k} onClick={() => set({ kind: k })} title={KIND_HINT[k]}
-                className={cn('h-7 px-3 rounded-full text-xs font-medium transition-colors',
-                  brief.kind === k ? 'bg-card shadow-xs text-foreground' : 'text-muted-foreground hover:text-foreground')}>
-                {KIND_LABEL[k]}
-              </button>
-            ))}
-          </div>
+          <span className="text-sm font-semibold">{KIND_LABEL[brief.kind]}</span>
           <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', OUTREACH_STATUS[brief.status].className)}>
             {OUTREACH_STATUS[brief.status].label}
           </span>
@@ -129,7 +121,7 @@ export function OutreachEditor({ briefId, onClose }: { briefId: string; onClose:
                 className="w-full bg-transparent mt-2 text-[15px] leading-relaxed placeholder:text-muted-foreground/60 resize-none focus:outline-none" />
             </div>
 
-            <Block title="Who it’s for">
+            <Block title="The creator">
               <div className="grid grid-cols-2 gap-3">
                 <input value={brief.recipientName || ''} onChange={(e) => set({ recipientName: e.target.value })}
                   placeholder="Name" className={INPUT} />
